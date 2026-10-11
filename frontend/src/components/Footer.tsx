@@ -47,19 +47,19 @@ export default function Footer({ onAdminClick }: FooterProps) {
       </div>
 
       {/* Separador y pie legal */}
-      <div className="border-t border-stone-100 px-4 sm:px-6 py-4 max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div className="border-t border-stone-100 px-4 sm:px-6 py-4 max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
         <p className="text-xs text-stone-400">
           © {new Date().getFullYear()} Ministerio Por una Vida Mejor — Sistema de gestión comunitaria
         </p>
 
-        {/* Enlace administrativo discreto */}
+        {/* Botón administrativo — mayor área de toque y legibilidad */}
         <button
           onClick={onAdminClick}
-          className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-stone-600 transition-colors group"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-stone-200 bg-stone-50 hover:bg-stone-100 text-stone-500 hover:text-stone-700 transition-all group min-w-[180px] justify-center sm:justify-start"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="w-3 h-3 group-hover:text-amber-600 transition-colors"
+            className="w-4 h-4 shrink-0 group-hover:text-amber-600 transition-colors"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -70,7 +70,7 @@ export default function Footer({ onAdminClick }: FooterProps) {
             <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
-          <span>¿Eres parte de la administración? Ingresa aquí</span>
+          <span className="text-sm font-medium">Acceso Secretaría</span>
         </button>
       </div>
     </footer>

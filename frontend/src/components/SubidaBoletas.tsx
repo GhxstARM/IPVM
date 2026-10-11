@@ -1,5 +1,9 @@
 import { useRef, useState } from 'react'
 
+interface SubidaBoletasProps {
+  onLogout: () => void
+}
+
 interface FormState {
   fecha: string
   monto: string
@@ -7,7 +11,7 @@ interface FormState {
   preview: string | null
 }
 
-export default function SubidaBoletas() {
+export default function SubidaBoletas({ onLogout }: SubidaBoletasProps) {
   const [form, setForm] = useState<FormState>({
     fecha: new Date().toISOString().split('T')[0] ?? '',
     monto: '',
@@ -72,13 +76,26 @@ export default function SubidaBoletas() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10 space-y-8">
-      <div className="space-y-1">
-        <h2 className="text-2xl sm:text-3xl font-bold text-stone-800">
-          🗂️ Secretaría — Carga de Boletas
-        </h2>
-        <p className="text-stone-500 text-sm">
-          Sube o fotografía una boleta y procésala con IA para registrarla en el sistema de rendición de cuentas.
-        </p>
+      {/* Barra de sesión activa */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="space-y-1">
+          <h2 className="text-2xl sm:text-3xl font-bold text-stone-800">
+            🗂️ Secretaría — Carga de Boletas
+          </h2>
+          <p className="text-stone-500 text-sm">
+            Sube o fotografía una boleta y procésala con IA para registrarla en el sistema de rendición de cuentas.
+          </p>
+        </div>
+        {/* Botón cerrar sesión */}
+        <button
+          onClick={onLogout}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-red-50 hover:border-red-300 text-stone-500 hover:text-red-600 transition-all text-sm font-medium group shrink-0"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          Cerrar Sesión
+        </button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
