@@ -18,6 +18,14 @@ app.get('/api/test-db', async (req, res) => {
   }
 });
 
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Backend ejecución',
+    status: 'online'
+  });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en el puerto ${PORT}`);
