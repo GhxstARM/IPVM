@@ -1,9 +1,7 @@
-require('dotenv').config(); // Siempre primero, antes de cualquier módulo que use process.env
+require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const pool = require('./config/db');
-
 const multer = require('multer');
 const Lens = require('chrome-lens-ocr').default || require('chrome-lens-ocr');
 const { OpenAI } = require('openai');
@@ -22,84 +20,60 @@ if (!process.env.GROQ_API_KEY) {
   console.warn('⚠️  Falta GROQ_API_KEY en el .env');
 }
 if (!process.env.SHEETS_WEBAPP_URL) {
-  console.warn('⚠️  Falta SHEETS_WEBAPP_URL en el .env (no se guardará en Google Sheets)');
+  console.warn('⚠️  Falta SHEETS_WEBAPP_URL en el .env');
 }
 
-// Cliente apuntando a la API de Groq
 const aiClient = new OpenAI({
   baseURL: 'https://api.groq.com/openai/v1',
   apiKey: process.env.GROQ_API_KEY,
 });
 
-// llama-3.3-70b-versatile fue dado de baja en Groq (16-08-2026).
-// Usamos el modelo más barato de Groq para texto: openai/gpt-oss-20b
-// ($0.075 / $0.30 por 1M tokens entrada/salida). Se puede cambiar desde el .env.
 const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
 
-// Caché de 60 s para la página de Transparencia (Apps Script tarda 1-2 s en responder)
 const CACHE_TRANSPARENCIA_MS = 60 * 1000;
 let cacheTransparencia = { data: null, ts: 0 };
 
-// Guarda un gasto en Google Sheets vía Apps Script (doPost).
-// Lanza un Error si algo falla.
-async function guardarEnSheets({ gasto, fecha, razon, monto }) {
-  if (!process.env.SHEETS_WEBAPP_URL) {
+const SHEETS_URL = (process.env.SHEETS_WEBAPP_URL || '').trim();
+
+// Helper genérico para peticiones POST a Google Apps Script
+async function enviarASheets(payload) {
+  if (!SHEETS_URL) {
     throw new Error('Falta SHEETS_WEBAPP_URL en el .env');
   }
 
-  // Monto en CLP: "12.990" -> 12990 (evita que Sheets lo lea como 12,99)
-  const digitos = String(monto ?? '').replace(/[^\d]/g, '');
-  if (!digitos) {
-    throw new Error(`Monto no válido: "${monto}"`);
-  }
-
-  const sheetsRes = await fetch(process.env.SHEETS_WEBAPP_URL, {
+  const sheetsRes = await fetch(SHEETS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({
-      gasto: gasto || 'Otros',
-      // Si no hay fecha válida, Apps Script usa la fecha de hoy
-      fecha: fecha && fecha !== 'No detectado' ? fecha : '',
-      razon: razon || 'No detectado',
-      monto: Number(digitos),
-    }),
-    redirect: 'follow', // Apps Script responde con un 302 antes del resultado
+    body: JSON.stringify(payload),
+    redirect: 'follow',
   });
 
   const texto = await sheetsRes.text();
-  let sheetsData;
+  let data;
   try {
-    sheetsData = JSON.parse(texto);
+    data = JSON.parse(texto);
   } catch {
-    // Típico cuando la implementación no es pública y Google devuelve una página de login/HTML
-    let host = '';
-    try { host = new URL(sheetsRes.url).hostname; } catch {}
-    const extracto = texto.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
-    throw new Error(
-      `Apps Script no devolvió JSON (HTTP ${sheetsRes.status}, respondió ${host}). ` +
-        `Respuesta: "${extracto}". ` +
-        'Revisa que la implementación sea "Aplicación web", acceso "Cualquier persona" y que la URL termine en /exec.'
-    );
+    throw new Error(`Google Apps Script no devolvió JSON: ${texto.slice(0, 150)}`);
   }
 
-  if (!sheetsData.success) {
-    throw new Error(sheetsData.error || 'Apps Script devolvió success: false');
+  if (!data.success) {
+    throw new Error(data.error || 'Error en Google Apps Script');
   }
+  return data;
 }
 
+// ----------------- OCR Y BOLETAS -----------------
 app.post('/api/ocr', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, error: 'No imagen' });
 
-    // 1. Extraer texto con OCR
     const ocrResult = await lens.scanByBuffer(req.file.buffer);
-    const extractedText = ocrResult.segments.map(s => s.text).join('\n');
+    const extractedText = ocrResult.segments.map((s) => s.text).join('\n');
 
     if (!extractedText) {
       return res.status(400).json({ success: false, error: 'No se detectó texto en la imagen' });
     }
 
-    // 2. Procesar con Groq
     const aiResponse = await aiClient.chat.completions.create({
       model: GROQ_MODEL,
       messages: [
@@ -114,49 +88,51 @@ app.post('/api/ocr', upload.single('image'), async (req, res) => {
         },
       ],
       temperature: 0.1,
-      reasoning_effort: 'low', // gpt-oss razona; 'low' da respuestas rápidas y baratas
+      reasoning_effort: 'low',
       response_format: { type: 'json_object' },
     });
 
     const rawContent = aiResponse.choices[0]?.message?.content || '';
-
-    // 3. Limpiar y parsear (por si la IA añade marcas markdown)
     const cleanJson = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
     const analisisJson = JSON.parse(cleanJson);
-    console.log('Análisis IA:', analisisJson, '| tokens:', aiResponse.usage?.total_tokens);
 
-    // 4. Enviar resultado estructurado al frontend.
-    // El guardado en Google Sheets ya no es automático: el usuario confirma/edita
-    // los datos en el frontend y se suben con POST /api/gastos.
     res.json({
       success: true,
       text: extractedText,
       analisis: analisisJson,
     });
   } catch (error) {
-    console.error('Error procesando OCR/Groq:', error?.status, error?.message || error);
+    console.error('Error procesando OCR/Groq:', error?.message || error);
     res.status(500).json({ success: false, error: 'Error procesando la boleta' });
   }
 });
 
-// Guardado manual (por si el frontend corrige los datos antes de confirmar)
-// Body esperado: { gasto, fecha, razon, monto }
 app.post('/api/gastos', async (req, res) => {
   try {
-    await guardarEnSheets(req.body || {});
-    cacheTransparencia.ts = 0; // fuerza a que Transparencia muestre el gasto nuevo
+    const { gasto, fecha, razon, monto } = req.body || {};
+    const digitos = String(monto ?? '').replace(/[^\d]/g, '');
+    if (!digitos) throw new Error(`Monto no válido: "${monto}"`);
+
+    await enviarASheets({
+      tipo: 'gasto',
+      gasto: gasto || 'Otros',
+      fecha: fecha && fecha !== 'No detectado' ? fecha : '',
+      razon: razon || 'No detectado',
+      monto: Number(digitos),
+    });
+
+    cacheTransparencia.ts = 0; // refresca transparencia
     res.json({ success: true });
   } catch (error) {
-    console.error('Error guardando en Google Sheets:', error.message);
+    console.error('Error guardando gasto:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Datos para la página de Transparencia: lee gastos e ingresos desde Google Sheets.
-// El frontend NUNCA llama directo a Apps Script: esa URL también permite escribir en la hoja.
+// ----------------- TRANSPARENCIA -----------------
 app.get('/api/transparencia', async (req, res) => {
   try {
-    if (!process.env.SHEETS_WEBAPP_URL) {
+    if (!SHEETS_URL) {
       throw new Error('Falta SHEETS_WEBAPP_URL en el .env');
     }
 
@@ -165,44 +141,131 @@ app.get('/api/transparencia', async (req, res) => {
       return res.json(cacheTransparencia.data);
     }
 
-    const url = new URL(process.env.SHEETS_WEBAPP_URL);
+    const url = new URL(SHEETS_URL);
     url.searchParams.set('action', 'transparencia');
 
     const sheetsRes = await fetch(url, { redirect: 'follow' });
-    if (!sheetsRes.ok) {
-      throw new Error(`Apps Script respondió HTTP ${sheetsRes.status}`);
-    }
-    const texto = await sheetsRes.text();
+    const data = await sheetsRes.json();
 
-    let data;
-    try {
-      data = JSON.parse(texto);
-    } catch {
-      throw new Error(`Apps Script no devolvió JSON (HTTP ${sheetsRes.status})`);
-    }
-    if (!data.success) {
-      throw new Error(data.error || 'Apps Script devolvió success: false');
-    }
-
-    // Si faltan estos arrays, la URL /exec sigue ejecutando una versión antigua del script
-    if (!Array.isArray(data.gastos) || !Array.isArray(data.ingresos)) {
-      throw new Error(
-        'Apps Script devolvió una versión antigua (sin gastos/ingresos). Crea una nueva versión de la implementación.'
-      );
-    }
+    if (!data.success) throw new Error(data.error || 'Error al obtener transparencia');
 
     const payload = {
       success: true,
-      gastos: data.gastos,
-      ingresos: data.ingresos,
+      gastos: data.gastos || [],
+      ingresos: data.ingresos || [],
     };
     cacheTransparencia = { data: payload, ts: ahora };
     res.json(payload);
   } catch (error) {
-    console.error('Error leyendo transparencia desde Google Sheets:', error.message);
-    // Si hay una versión anterior en caché, es mejor mostrarla que un error
+    console.error('Error leyendo transparencia:', error.message);
     if (cacheTransparencia.data) return res.json(cacheTransparencia.data);
-    res.status(500).json({ success: false, error: 'No se pudieron cargar los datos de transparencia' });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ----------------- MENSAJE PASTORAL -----------------
+app.get('/api/pastoral', async (req, res) => {
+  try {
+    if (!SHEETS_URL) throw new Error('Falta SHEETS_WEBAPP_URL en el .env');
+    const url = new URL(SHEETS_URL);
+    url.searchParams.set('action', 'pastor');
+
+    const sheetsRes = await fetch(url, { redirect: 'follow' });
+    const data = await sheetsRes.json();
+
+    res.json({
+      success: true,
+      mensaje: data.data?.mensaje || '',
+    });
+  } catch (error) {
+    console.error('Error leyendo mensaje pastoral:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/pastoral', async (req, res) => {
+  try {
+    const { mensaje } = req.body || {};
+    await enviarASheets({ tipo: 'pastor', mensaje: mensaje || '' });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error guardando mensaje pastoral:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ----------------- EVENTOS -----------------
+function formatearFecha(val) {
+  if (!val) return '';
+  const str = String(val).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return str;
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatearHora(val) {
+  if (!val) return '';
+  const str = String(val).trim();
+  if (/^\d{1,2}:\d{2}$/.test(str)) return str;
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return str;
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
+app.get('/api/eventos', async (req, res) => {
+  try {
+    if (!SHEETS_URL) throw new Error('Falta SHEETS_WEBAPP_URL en el .env');
+    const url = new URL(SHEETS_URL);
+    url.searchParams.set('action', 'eventos');
+
+    const sheetsRes = await fetch(url, { redirect: 'follow' });
+    const data = await sheetsRes.json();
+
+    const rawEventos = data.eventos || [];
+    const eventos = rawEventos.map((ev) => ({
+      ...ev,
+      fecha: formatearFecha(ev.fecha),
+      hora: formatearHora(ev.hora),
+    }));
+
+    res.json(eventos);
+  } catch (error) {
+    console.error('Error leyendo eventos:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/eventos', async (req, res) => {
+  try {
+    const { titulo, fecha, hora, descripcion } = req.body || {};
+    const result = await enviarASheets({
+      tipo: 'evento',
+      titulo,
+      fecha,
+      hora,
+      descripcion,
+    });
+    res.json({ success: true, id: result.id, titulo, fecha, hora, descripcion });
+  } catch (error) {
+    console.error('Error guardando evento:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/eventos/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await enviarASheets({ tipo: 'eliminar_evento', id });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error eliminando evento:', error.message);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
