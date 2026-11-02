@@ -2,7 +2,7 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copiar archivos de dependencias primero
+# Copiar package.json y package-lock.json primero (optimiza el caché de Docker)
 COPY package*.json ./
 
 # Instalar dependencias
@@ -13,5 +13,6 @@ COPY . .
 
 EXPOSE 3000
 
-# Nodemon para desarrollo
-CMD ["npm", "run", "dev"]
+# Asumiendo que usas nodemon (que vi en tu tree) o node directamente
+CMD ["npm", "run", "dev"] 
+# (Si tu package.json no tiene "dev", cámbialo por CMD ["node", "app.js"])
