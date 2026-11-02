@@ -20,7 +20,7 @@ export default function DonarModal({ onClose }: DonarModalProps) {
       setCopiado(true)
       setTimeout(() => setCopiado(false), 2500)
     } catch {
-      // Fallback para navegadores sin permiso
+      // Fallback para navegadores sin permiso de clipboard
       const ta = document.createElement('textarea')
       ta.value = DATOS_BANCO
       document.body.appendChild(ta)
@@ -33,7 +33,6 @@ export default function DonarModal({ onClose }: DonarModalProps) {
   }
 
   return (
-    /* Overlay */
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-0 sm:px-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
@@ -44,7 +43,7 @@ export default function DonarModal({ onClose }: DonarModalProps) {
         <div className="bg-amber-700 px-6 py-5 flex items-center justify-between">
           <div>
             <p className="text-amber-200 text-xs font-semibold uppercase tracking-widest">Ministerio PVM</p>
-            <h2 className="text-white font-bold text-xl mt-0.5">💛 Donar / Aporte Comunitario</h2>
+            <h2 className="text-white font-bold text-xl mt-0.5">Donar / Aporte Comunitario</h2>
           </div>
           <button
             onClick={onClose}
@@ -62,16 +61,13 @@ export default function DonarModal({ onClose }: DonarModalProps) {
           {/* QR placeholder */}
           <div className="flex flex-col items-center gap-3">
             <div className="w-44 h-44 border-2 border-dashed border-stone-300 rounded-2xl flex flex-col items-center justify-center bg-stone-50 gap-2">
-              {/* QR simulado con patrón de puntos */}
               <svg viewBox="0 0 100 100" className="w-36 h-36 text-stone-700">
-                {/* Esquinas del QR */}
                 <rect x="5" y="5" width="30" height="30" rx="3" fill="none" stroke="currentColor" strokeWidth="6"/>
                 <rect x="12" y="12" width="16" height="16" rx="1" fill="currentColor"/>
                 <rect x="65" y="5" width="30" height="30" rx="3" fill="none" stroke="currentColor" strokeWidth="6"/>
                 <rect x="72" y="12" width="16" height="16" rx="1" fill="currentColor"/>
                 <rect x="5" y="65" width="30" height="30" rx="3" fill="none" stroke="currentColor" strokeWidth="6"/>
                 <rect x="12" y="72" width="16" height="16" rx="1" fill="currentColor"/>
-                {/* Puntos internos simulados */}
                 <rect x="40" y="10" width="6" height="6" rx="1" fill="currentColor"/>
                 <rect x="50" y="10" width="6" height="6" rx="1" fill="currentColor"/>
                 <rect x="40" y="20" width="6" height="6" rx="1" fill="currentColor"/>
@@ -125,11 +121,11 @@ export default function DonarModal({ onClose }: DonarModalProps) {
                 : 'bg-amber-700 hover:bg-amber-800 text-white'
             }`}
           >
-            {copiado ? '✅ ¡Datos copiados!' : '📋 Copiar datos bancarios'}
+            {copiado ? 'Datos copiados al portapapeles' : 'Copiar datos bancarios'}
           </button>
 
           <p className="text-center text-xs text-stone-400">
-            ¡Gracias por tu generosidad! Cada aporte fortalece nuestra comunidad. 🙏
+            Gracias por tu generosidad. Cada aporte fortalece nuestra comunidad.
           </p>
         </div>
       </div>

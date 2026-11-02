@@ -1,8 +1,32 @@
+import { useEffect, useState } from 'react'
+import { getMensajeInicio } from '../services/inicioService'
+
 interface HomeProps {
   onDonar: () => void
 }
 
 export default function Home({ onDonar }: HomeProps) {
+  const [mensajePastoral, setMensajePastoral] = useState<string>('')
+  const [cargandoPastoral, setCargandoPastoral] = useState<boolean>(true)
+
+  useEffect(() => {
+    let activo = true
+    getMensajeInicio()
+      .then((data) => {
+        if (activo) setMensajePastoral(data.mensaje)
+      })
+      .catch(() => {
+        // En caso de error, el fallback mostrará el mensaje predeterminado
+      })
+      .finally(() => {
+        if (activo) setCargandoPastoral(false)
+      })
+
+    return () => {
+      activo = false
+    }
+  }, [])
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-12">
 
@@ -10,13 +34,15 @@ export default function Home({ onDonar }: HomeProps) {
       <section className="text-center space-y-4">
         <span className="inline-block text-4xl">✝</span>
         <h2 className="text-3xl sm:text-4xl font-bold text-stone-800 leading-tight">
-          Amamos a Dios y a su creación 🌟💫
+          Amamos a Dios y a su creación
         </h2>
-        <p className="text-stone-500 text-lg max-w-2xl mx-auto">
+
+        <p className="text-stone-600 text-lg max-w-2xl mx-auto leading-relaxed">
           Somos un <strong className="text-stone-700">Ministerio Familiar</strong> ubicado en{' '}
           <strong className="text-stone-700">Laguna Salada 1651, Peñalolén</strong>. Nos reunimos cada domingo a las{' '}
           <strong className="text-amber-700">10:00 hrs</strong> para crecer juntos en fe, caridad y servicio.
         </p>
+
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
           <button
             onClick={onDonar}
@@ -40,7 +66,6 @@ export default function Home({ onDonar }: HomeProps) {
 
       {/* Llamado a oración */}
       <section className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center space-y-3">
-        <p className="text-2xl">🙏</p>
         <h3 className="text-lg font-bold text-amber-800">¿Necesitas oración?</h3>
         <p className="text-amber-700 text-sm max-w-lg mx-auto">
           Contáctanos, queremos ayudarte. Escríbenos por Instagram o visítanos cualquier domingo a las 10:00 hrs en{' '}
@@ -56,19 +81,30 @@ export default function Home({ onDonar }: HomeProps) {
         </a>
       </section>
 
-      {/* Mensaje del Pastor */}
+      {/* Mensaje del Pastor Principal (Dinámico) */}
       <section className="bg-stone-50 border border-stone-200 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row gap-6 items-start">
         <div className="shrink-0 w-16 h-16 rounded-full bg-amber-700 flex items-center justify-center text-white text-2xl shadow">
-          👤
+          <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+          </svg>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-2 flex-1">
           <p className="text-xs font-semibold uppercase tracking-widest text-amber-700">
             Mensaje del Pastor Principal
           </p>
           <h3 className="text-xl font-bold text-stone-800">Pastor Héctor Chanampe</h3>
-          <p className="text-stone-600 leading-relaxed">
-            "Les doy la bienvenida a todos quienes buscan un lugar de paz, crecimiento y comunidad. Somos un ministerio familiar que ama a Dios y a su creación. Esta comunidad es un hogar abierto para toda persona que desea encontrar sentido y propósito en la fe. Juntos construimos una comunidad más justa, solidaria y esperanzadora. Los esperamos cada domingo a las 10:00 hrs."
-          </p>
+
+          {cargandoPastoral ? (
+            <div className="space-y-2 py-1">
+              <div className="h-4 bg-stone-200 animate-pulse rounded w-full" />
+              <div className="h-4 bg-stone-200 animate-pulse rounded w-5/6" />
+              <div className="h-4 bg-stone-200 animate-pulse rounded w-3/4" />
+            </div>
+          ) : (
+            <p className="text-stone-600 leading-relaxed italic whitespace-pre-wrap">
+              "{mensajePastoral || 'Les doy la bienvenida a todos quienes buscan un lugar de paz, crecimiento y comunidad.'}"
+            </p>
+          )}
         </div>
       </section>
 
@@ -76,26 +112,22 @@ export default function Home({ onDonar }: HomeProps) {
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           {
-            icon: '🙏',
             title: 'Únete a la oración',
             desc: 'Cada domingo a las 10:00 hrs celebramos una reunión comunitaria en Laguna Salada 1651, Peñalolén.',
           },
           {
-            icon: '📖',
             title: 'Estudio bíblico',
             desc: 'Grupos pequeños para reflexionar la Palabra con profundidad y fraternidad durante la semana.',
           },
           {
-            icon: '🤝',
             title: 'Acción social',
             desc: 'Apoyamos familias en situación de vulnerabilidad. Puedes sumarte al equipo de olla común y asistencia comunitaria.',
           },
-        ].map(({ icon, title, desc }) => (
+        ].map(({ title, desc }) => (
           <div
             key={title}
             className="bg-white border border-stone-200 rounded-xl p-5 hover:shadow-md transition-shadow space-y-2"
           >
-            <div className="text-3xl">{icon}</div>
             <h4 className="font-semibold text-stone-800">{title}</h4>
             <p className="text-sm text-stone-500 leading-relaxed">{desc}</p>
           </div>
@@ -104,7 +136,7 @@ export default function Home({ onDonar }: HomeProps) {
 
       {/* Horarios */}
       <section className="bg-stone-50 border border-stone-200 rounded-2xl p-6 space-y-4">
-        <h3 className="text-lg font-bold text-stone-800">📅 Horario de reuniones</h3>
+        <h3 className="text-lg font-bold text-stone-800">Horario de reuniones</h3>
         <ul className="divide-y divide-stone-200 text-sm text-stone-600">
           {[
             ['Domingo', 'Reunión dominical', '10:00 hrs'],
@@ -118,7 +150,10 @@ export default function Home({ onDonar }: HomeProps) {
           ))}
         </ul>
         <div className="flex items-center gap-2 bg-amber-50 rounded-xl px-4 py-3 text-sm text-amber-800">
-          <span>📍</span>
+          <svg className="w-4 h-4 shrink-0 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+          </svg>
           <span><strong>Laguna Salada 1651</strong>, Peñalolén — Todos los domingos</span>
         </div>
       </section>

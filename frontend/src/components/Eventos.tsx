@@ -1,47 +1,28 @@
-interface Evento {
-  id: number
-  titulo: string
-  descripcion: string
-  hora: string
-  lugar: string
-  etiqueta: string
-  color: string
-}
-
-const eventos: Evento[] = [
-  {
-    id: 1,
-    titulo: 'Liturgia Dominical',
-    descripcion:
-      'Celebración eucarística central de la semana. Todos los feligreses son bienvenidos. Se realizará la colecta dominical para las obras sociales de la parroquia.',
-    hora: '10:00 h',
-    lugar: 'Templo principal — Av. Los Libertadores 842',
-    etiqueta: 'Liturgia',
-    color: 'bg-amber-100 text-amber-800 border-amber-200',
-  },
-  {
-    id: 2,
-    titulo: 'Catequesis Infantil',
-    descripcion:
-      'Encuentro formativo para niños y niñas de 6 a 12 años. Se trabajará sobre los valores del respeto y la solidaridad mediante dinámicas grupales y reflexión bíblica.',
-    hora: '11:30 h',
-    lugar: 'Sala de catequesis — Primer piso',
-    etiqueta: 'Formación',
-    color: 'bg-sky-100 text-sky-800 border-sky-200',
-  },
-  {
-    id: 3,
-    titulo: 'Misa Vespertina Familiar',
-    descripcion:
-      'Segunda celebración del día, orientada a familias. Incluye canto litúrgico y reflexión breve. Al finalizar se realizará compartido comunitario en el patio parroquial.',
-    hora: '19:00 h',
-    lugar: 'Templo principal — Av. Los Libertadores 842',
-    etiqueta: 'Liturgia',
-    color: 'bg-amber-100 text-amber-800 border-amber-200',
-  },
-]
+import { useEffect, useState } from 'react'
+import { type Evento, getEventos } from '../services/eventosService'
 
 export default function Eventos() {
+  const [eventos, setEventos] = useState<Evento[]>([])
+  const [cargando, setCargando] = useState(true)
+
+  useEffect(() => {
+    let activo = true
+    getEventos()
+      .then((data) => {
+        if (activo) setEventos(data)
+      })
+      .catch(() => {
+        // En caso de error se mantendrán los que haya
+      })
+      .finally(() => {
+        if (activo) setCargando(false)
+      })
+
+    return () => {
+      activo = false
+    }
+  }, [])
+
   const fechaDomingo = (() => {
     const hoy = new Date()
     const diff = (7 - hoy.getDay()) % 7 || 7
@@ -59,57 +40,79 @@ export default function Eventos() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-8">
       <div className="space-y-1">
         <h2 className="text-2xl sm:text-3xl font-bold text-stone-800">
-          📅 Próximas Celebraciones
+          Próximas Celebraciones
         </h2>
         <p className="text-stone-500 capitalize">{fechaDomingo}</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        {eventos.map((ev) => (
-          <article
-            key={ev.id}
-            className="bg-white border border-stone-200 rounded-2xl overflow-hidden hover:shadow-lg transition-shadow flex flex-col"
-          >
-            {/* Top accent */}
-            <div className="h-1.5 bg-amber-700 w-full" />
+      {cargando ? (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="bg-white border border-stone-200 rounded-2xl h-64 animate-pulse"
+            />
+          ))}
+        </div>
+      ) : eventos.length === 0 ? (
+        <div className="text-center py-12 bg-white border border-stone-200 rounded-2xl p-6">
+          <p className="text-stone-500 text-sm">No hay celebraciones programadas por el momento.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          {eventos.map((ev) => (
+            <article
+              key={ev.id}
+              className="bg-white border border-stone-200 rounded-2xl overflow-hidden hover:shadow-lg transition-shadow flex flex-col"
+            >
+              <div className="h-1.5 bg-amber-700 w-full" />
 
-            <div className="p-5 flex flex-col gap-3 flex-1">
-              {/* Etiqueta */}
-              <span
-                className={`self-start text-xs font-semibold px-2.5 py-0.5 rounded-full border ${ev.color}`}
-              >
-                {ev.etiqueta}
-              </span>
+              <div className="p-5 flex flex-col gap-3 flex-1">
+                {ev.etiqueta && (
+                  <span
+                    className={`self-start text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
+                      ev.color || 'bg-amber-100 text-amber-800 border-amber-200'
+                    }`}
+                  >
+                    {ev.etiqueta}
+                  </span>
+                )}
 
-              {/* Título */}
-              <h3 className="text-base font-bold text-stone-800 leading-snug">
-                {ev.titulo}
-              </h3>
+                <h3 className="text-base font-bold text-stone-800 leading-snug">
+                  {ev.titulo}
+                </h3>
 
-              {/* Descripción */}
-              <p className="text-sm text-stone-500 leading-relaxed flex-1">
-                {ev.descripcion}
-              </p>
+                {ev.descripcion && (
+                  <p className="text-sm text-stone-500 leading-relaxed flex-1">
+                    {ev.descripcion}
+                  </p>
+                )}
 
-              {/* Meta */}
-              <div className="border-t border-stone-100 pt-3 space-y-1.5 text-xs text-stone-500">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-base">🕐</span>
-                  <span className="font-semibold text-stone-700">{ev.hora}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-base">📍</span>
-                  <span>{ev.lugar}</span>
+                <div className="border-t border-stone-100 pt-3 space-y-1.5 text-xs text-stone-500">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-3.5 h-3.5 shrink-0 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="font-semibold text-stone-700">{ev.hora} hrs</span>
+                  </div>
+                  {ev.lugar && (
+                    <div className="flex items-center gap-2">
+                      <svg className="w-3.5 h-3.5 shrink-0 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                      </svg>
+                      <span>{ev.lugar}</span>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          </article>
-        ))}
-      </div>
+            </article>
+          ))}
+        </div>
+      )}
 
-      {/* Nota informativa */}
       <div className="bg-stone-50 border border-stone-200 rounded-xl px-5 py-4 text-sm text-stone-500">
-        💡 <strong className="text-stone-700">¿Deseas publicar una actividad?</strong>{' '}
+        <strong className="text-stone-700">¿Deseas publicar una actividad?</strong>{' '}
         Comunícate con la secretaría parroquial para que sea incluida en la agenda comunitaria.
       </div>
     </div>
