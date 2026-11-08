@@ -6,10 +6,20 @@ const multer = require('multer');
 const Lens = require('chrome-lens-ocr').default || require('chrome-lens-ocr');
 const { OpenAI } = require('openai');
 const crypto = require('crypto');
+const {
+  WebpayPlus,
+  Options,
+  IntegrationApiKeys,
+  IntegrationCommerceCodes,
+  Environment,
+} = require('transbank-sdk');
+
+
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -191,7 +201,7 @@ app.post('/api/ocr', upload.single('image'), async (req, res) => {
 // Body esperado: { gasto, fecha, razon, monto }
 app.post('/api/gastos', requiereSecretaria, async (req, res) => {
 
-app.post('/api/gastos', async (req, res) => {
+
 
   try {
     const { gasto, fecha, razon, monto } = req.body || {};
@@ -351,6 +361,177 @@ app.delete('/api/eventos/:id', async (req, res) => {
   } catch (error) {
     console.error('Error eliminando evento:', error.message);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ----------------- WEBPAY PLUS (DONACIONES) -----------------
+const txWebpay = new WebpayPlus.Transaction(
+  new Options(
+    IntegrationCommerceCodes.WEBPAY_PLUS, // Código de comercio de prueba: 597055555532
+    IntegrationApiKeys.WEBPAY,            // API Key pública de integración
+    Environment.Integration               // Apunta a webpay3gint.transbank.cl
+  )
+);
+
+function obtenerUrlsBase(req) {
+  const backend = (process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+  const frontend = (process.env.FRONTEND_URL || `${req.protocol}://${req.hostname}:5173`).replace(/\/$/, '');
+  return { backend, frontend };
+}
+
+// 1A-1. Pantalla móvil al escanear el QR para que el donante elija el monto
+app.get('/api/webpay/qr', (req, res) => {
+  const montoInicial = Math.round(Number(req.query?.monto)) >= 500 ? Math.round(Number(req.query.monto)) : '';
+
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(`<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Donar - Ministerio PVM</title>
+    <style>
+      body { font-family: system-ui, -apple-system, sans-serif; background: #fafaf9; color: #292524; margin: 0; padding: 1.25rem; display: flex; justify-content: center; align-items: center; min-height: 100vh; box-sizing: border-box; }
+      .card { background: #fff; width: 100%; max-width: 380px; border-radius: 1.25rem; box-shadow: 0 10px 25px rgba(0,0,0,0.08); overflow: hidden; border: 1px solid #e7e5e4; }
+      .header { background: #b45309; color: #fff; padding: 1.25rem 1.5rem; }
+      .header small { color: #fde68a; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; font-size: 0.7rem; }
+      .header h1 { margin: 0.25rem 0 0; font-size: 1.25rem; }
+      .body { padding: 1.5rem; }
+      .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin-bottom: 1rem; }
+      .chip { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; font-weight: 700; padding: 0.65rem; border-radius: 0.75rem; cursor: pointer; font-size: 0.95rem; }
+      .chip:active { background: #b45309; color: #fff; }
+      label { display: block; font-size: 0.8rem; font-weight: 600; color: #57534e; margin-bottom: 0.4rem; }
+      input { width: 100%; box-sizing: border-box; padding: 0.8rem 1rem; font-size: 1.1rem; font-weight: 700; border: 1px solid #d6d3d1; border-radius: 0.75rem; margin-bottom: 1rem; }
+      button[type="submit"] { width: 100%; background: #1c1917; color: #fff; border: none; padding: 0.9rem; border-radius: 0.75rem; font-size: 1rem; font-weight: 700; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="header">
+        <small>Ministerio PVM</small>
+        <h1>Aporte Comunitario</h1>
+      </div>
+      <form class="body" method="POST" action="/api/webpay/qr">
+        <label>Elige un monto sugerido</label>
+        <div class="grid">
+          <button type="button" class="chip" onclick="document.getElementById('monto').value=1000">$1.000</button>
+          <button type="button" class="chip" onclick="document.getElementById('monto').value=2000">$2.000</button>
+          <button type="button" class="chip" onclick="document.getElementById('monto').value=5000">$5.000</button>
+          <button type="button" class="chip" onclick="document.getElementById('monto').value=10000">$10.000</button>
+        </div>
+        <label for="monto">O ingresa el monto que desees (mín. $500)</label>
+        <input id="monto" name="monto" type="number" min="500" step="100" required placeholder="Ej: 1500" value="${montoInicial}" />
+        <button type="submit">Continuar a Webpay</button>
+      </form>
+    </div>
+  </body>
+</html>`);
+});
+
+// 1A-2. Procesa el monto elegido y redirige a Transbank
+app.post('/api/webpay/qr', async (req, res) => {
+  try {
+    const monto = Math.round(Number(req.body?.monto));
+    if (!monto || monto < 500) {
+      return res.status(400).send('El monto mínimo de donación es $500.');
+    }
+
+    const { backend } = obtenerUrlsBase(req);
+    const buyOrder = `DON-${Date.now()}`;
+    const sessionId = `SES-${crypto.randomBytes(8).toString('hex')}`;
+    const returnUrl = `${backend}/api/webpay/retorno`;
+
+    const response = await txWebpay.create(buyOrder, sessionId, monto, returnUrl);
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(`<!DOCTYPE html>
+<html lang="es">
+  <head><meta charset="UTF-8" /><title>Conectando con Webpay...</title></head>
+  <body style="font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
+    <p>Conectando con Webpay Transbank ($${monto.toLocaleString('es-CL')})...</p>
+    <form id="tbk-form" method="POST" action="${response.url}">
+      <input type="hidden" name="token_ws" value="${response.token}" />
+    </form>
+    <script>document.getElementById('tbk-form').submit();</script>
+  </body>
+</html>`);
+  } catch (error) {
+    console.error('Error iniciando QR Webpay:', error);
+    res.status(500).send('No se pudo conectar con Webpay Transbank.');
+  }
+});
+
+// 1B. Acceso desde el botón del formulario en la web
+app.post('/api/webpay/crear', async (req, res) => {
+  try {
+    const monto = Math.round(Number(req.body?.monto));
+    if (!monto || monto < 500) {
+      return res.status(400).json({ success: false, error: 'El monto mínimo de donación es $500.' });
+    }
+
+    const { backend } = obtenerUrlsBase(req);
+    const buyOrder = `DON-${Date.now()}`;
+    const sessionId = `SES-${crypto.randomBytes(8).toString('hex')}`;
+    const returnUrl = `${backend}/api/webpay/retorno`;
+
+    const response = await txWebpay.create(buyOrder, sessionId, monto, returnUrl);
+
+    res.json({
+      success: true,
+      url: response.url,
+      token: response.token,
+    });
+  } catch (error) {
+    console.error('Error creando transacción Webpay:', error);
+    res.status(500).json({ success: false, error: 'No se pudo iniciar el pago con Webpay.' });
+  }
+});
+
+// 2. Transbank redirige el navegador del donante aquí al finalizar o anular el pago
+app.all('/api/webpay/retorno', async (req, res) => {
+  const { frontend } = obtenerUrlsBase(req);
+
+  try {
+    const tokenWs = req.body?.token_ws || req.query?.token_ws;
+    const tbkToken = req.body?.TBK_TOKEN || req.query?.TBK_TOKEN;
+
+    if (!tokenWs && tbkToken) {
+      return res.redirect(`${frontend}/?estado=anulada`);
+    }
+
+    if (!tokenWs) {
+      return res.redirect(`${frontend}/?estado=error`);
+    }
+
+    const resultado = await txWebpay.commit(tokenWs);
+
+    if (resultado.status === 'AUTHORIZED' && resultado.response_code === 0) {
+      try {
+        const hoy = new Date().toISOString().split('T')[0];
+        await solicitarSheets({
+          action: 'gestion',
+          type: 'ingresos',
+          operation: 'create',
+          record: {
+            fecha: hoy,
+            concepto: `Donación Webpay (${resultado.buy_order})`,
+            monto: resultado.amount,
+          },
+        });
+        cacheTransparencia.ts = 0;
+      } catch (sheetErr) {
+        console.error('Donación aprobada, pero falló el registro en Sheets:', sheetErr.message);
+      }
+
+      return res.redirect(
+        `${frontend}/?estado=aprobada&monto=${resultado.amount}&orden=${resultado.buy_order}`
+      );
+    }
+
+    return res.redirect(`${frontend}/?estado=rechazada`);
+  } catch (error) {
+    console.error('Error confirmando transacción Webpay:', error);
+    return res.redirect(`${frontend}/?estado=error`);
   }
 });
 
