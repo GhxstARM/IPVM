@@ -12,7 +12,9 @@ interface Gasto {
 }
 
 interface Ingreso {
+  id?: number | string
   fecha: string // YYYY-MM-DD
+  tipoIngreso?: string
   descripcion: string
   monto: number
 }
@@ -181,7 +183,7 @@ export default function Transparencia() {
     const movimientos: Movimiento[] = [
       ...ingresosMes.map((i) => ({
         fecha: i.fecha,
-        desc: i.descripcion,
+        desc: `${i.tipoIngreso ? `${i.tipoIngreso} · ` : ''}${i.descripcion}`,
         tipo: 'ingreso' as const,
         monto: i.monto,
       })),

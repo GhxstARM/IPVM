@@ -13,6 +13,7 @@ export default function App() {
   const [modalDonar, setModalDonar] = useState(false)
   const [modalLogin, setModalLogin] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [secretariaToken, setSecretariaToken] = useState('')
 
   // Abre el modal de login (o va directo si ya está autenticada)
   const handleAdminClick = () => {
@@ -24,7 +25,8 @@ export default function App() {
   }
 
   // Cuando la contraseña es correcta
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = (token: string) => {
+    setSecretariaToken(token)
     setIsAuthenticated(true)
     setModalLogin(false)
     setActiveTab('secretaria')
@@ -32,7 +34,11 @@ export default function App() {
 
   // Cerrar sesión
   const handleLogout = () => {
+    if (secretariaToken) void fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/secretaria/logout`, {
+      method: 'POST', headers: { Authorization: `Bearer ${secretariaToken}` },
+    }).catch(() => undefined)
     setIsAuthenticated(false)
+    setSecretariaToken('')
     setActiveTab('inicio')
   }
 
@@ -50,7 +56,7 @@ export default function App() {
           setModalLogin(true)
           return null
         }
-        return <SubidaBoletas onLogout={handleLogout} />
+        return <SubidaBoletas onLogout={handleLogout} token={secretariaToken} />
     }
   }
 

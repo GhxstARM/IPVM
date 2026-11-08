@@ -7,6 +7,7 @@ const pool = require('./config/db');
 const multer = require('multer');
 const Lens = require('chrome-lens-ocr').default || require('chrome-lens-ocr');
 const { OpenAI } = require('openai');
+const crypto = require('crypto');
 
 const app = express();
 app.use(cors());
@@ -38,7 +39,85 @@ const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
 
 // Caché de 60 s para la página de Transparencia (Apps Script tarda 1-2 s en responder)
 const CACHE_TRANSPARENCIA_MS = 60 * 1000;
+// Cambia esta constante si quieres usar otra contraseña de Secretaría.
+const SECRETARIA_PASSWORD = 'admin123';
 let cacheTransparencia = { data: null, ts: 0 };
+const sesionesSecretaria = new Map();
+
+function requiereSecretaria(req, res, next) {
+  const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  const vence = sesionesSecretaria.get(token);
+  if (!token || !vence || vence <= Date.now()) {
+    sesionesSecretaria.delete(token);
+    return res.status(401).json({ success: false, error: 'Sesión de secretaría inválida o vencida.' });
+  }
+  next();
+}
+
+app.post('/api/secretaria/login', (req, res) => {
+  const enviada = Buffer.from(String(req.body?.password || ''));
+  const esperada = Buffer.from(SECRETARIA_PASSWORD);
+  if (enviada.length !== esperada.length || !crypto.timingSafeEqual(enviada, esperada)) {
+    return res.status(401).json({ success: false, error: 'Contraseña incorrecta.' });
+  }
+  const token = crypto.randomBytes(32).toString('hex');
+  sesionesSecretaria.set(token, Date.now() + 12 * 60 * 60 * 1000);
+  res.json({ success: true, token });
+});
+
+app.post('/api/secretaria/logout', requiereSecretaria, (req, res) => {
+  sesionesSecretaria.delete(String(req.headers.authorization).replace(/^Bearer\s+/i, ''));
+  res.json({ success: true });
+});
+
+async function solicitarSheets({ action, type, operation, id, record }) {
+  if (!process.env.SHEETS_WEBAPP_URL) throw new Error('Falta SHEETS_WEBAPP_URL en el .env');
+  const response = await fetch(process.env.SHEETS_WEBAPP_URL, {
+    method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action, type, operation, id, record }), redirect: 'follow',
+  });
+  const data = await response.json();
+  if (!response.ok || !data.success) throw new Error(data.error || `Apps Script respondió HTTP ${response.status}`);
+  return data;
+}
+
+app.get('/api/finanzas', requiereSecretaria, async (req, res) => {
+  try {
+    const url = new URL(process.env.SHEETS_WEBAPP_URL);
+    url.searchParams.set('action', 'gestion');
+    const response = await fetch(url, { redirect: 'follow' });
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.error || 'No se pudieron leer las hojas.');
+    res.json({ gastos: data.gastos || [], ingresos: data.ingresos || [] });
+  } catch (error) { res.status(502).json({ success: false, error: error.message }); }
+});
+
+app.post('/api/finanzas/:tipo', requiereSecretaria, async (req, res) => {
+  if (!['gastos', 'ingresos'].includes(req.params.tipo)) return res.status(400).json({ success: false, error: 'Tipo de registro inválido.' });
+  try {
+    const data = await solicitarSheets({ action: 'gestion', type: req.params.tipo, operation: 'create', record: req.body });
+    cacheTransparencia.ts = 0;
+    res.json(data);
+  } catch (error) { res.status(400).json({ success: false, error: error.message }); }
+});
+
+app.put('/api/finanzas/:tipo/:id', requiereSecretaria, async (req, res) => {
+  if (!['gastos', 'ingresos'].includes(req.params.tipo)) return res.status(400).json({ success: false, error: 'Tipo de registro inválido.' });
+  try {
+    const data = await solicitarSheets({ action: 'gestion', type: req.params.tipo, operation: 'update', id: req.params.id, record: req.body });
+    cacheTransparencia.ts = 0;
+    res.json(data);
+  } catch (error) { res.status(400).json({ success: false, error: error.message }); }
+});
+
+app.delete('/api/finanzas/:tipo/:id', requiereSecretaria, async (req, res) => {
+  if (!['gastos', 'ingresos'].includes(req.params.tipo)) return res.status(400).json({ success: false, error: 'Tipo de registro inválido.' });
+  try {
+    const data = await solicitarSheets({ action: 'gestion', type: req.params.tipo, operation: 'delete', id: req.params.id });
+    cacheTransparencia.ts = 0;
+    res.json(data);
+  } catch (error) { res.status(400).json({ success: false, error: error.message }); }
+});
 
 // Guarda un gasto en Google Sheets vía Apps Script (doPost).
 // Lanza un Error si algo falla.
@@ -141,7 +220,7 @@ app.post('/api/ocr', upload.single('image'), async (req, res) => {
 
 // Guardado manual (por si el frontend corrige los datos antes de confirmar)
 // Body esperado: { gasto, fecha, razon, monto }
-app.post('/api/gastos', async (req, res) => {
+app.post('/api/gastos', requiereSecretaria, async (req, res) => {
   try {
     await guardarEnSheets(req.body || {});
     cacheTransparencia.ts = 0; // fuerza a que Transparencia muestre el gasto nuevo

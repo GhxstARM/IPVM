@@ -1,35 +1,34 @@
 import { useState } from 'react'
-
-// Contraseña genérica — en producción usar autenticación real
-const PASS_CORRECTA = 'admin123'
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 
 interface LoginModalProps {
-  onSuccess: () => void
+  onSuccess: (token: string) => void
   onClose: () => void
 }
 
 export default function LoginModal({ onSuccess, onClose }: LoginModalProps) {
   const [password, setPassword] = useState('')
   const [mostrar, setMostrar] = useState(false)
-  const [error, setError] = useState(false)
+  const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setCargando(true)
-    setError(false)
+    setError('')
 
-    // Pequeña pausa para simular verificación y evitar fuerza bruta inmediata
-    await new Promise((r) => setTimeout(r, 600))
-
-    if (password === PASS_CORRECTA) {
-      setCargando(false)
-      onSuccess()
-    } else {
-      setCargando(false)
-      setError(true)
+    try {
+      const response = await fetch(`${API_URL}/api/secretaria/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      })
+      const data = await response.json()
+      if (!response.ok || !data.success) throw new Error(data.error || 'Contraseña incorrecta.')
+      onSuccess(data.token)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo contactar al servidor.')
       setPassword('')
-    }
+    } finally { setCargando(false) }
   }
 
   return (
@@ -82,7 +81,7 @@ export default function LoginModal({ onSuccess, onClose }: LoginModalProps) {
                 id="password"
                 type={mostrar ? 'text' : 'password'}
                 value={password}
-                onChange={(e) => { setPassword(e.target.value); setError(false) }}
+                onChange={(e) => { setPassword(e.target.value); setError('') }}
                 placeholder="••••••••"
                 autoComplete="current-password"
                 autoFocus
@@ -119,7 +118,7 @@ export default function LoginModal({ onSuccess, onClose }: LoginModalProps) {
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                 </svg>
-                Contraseña incorrecta. Intente nuevamente.
+                {error}
               </p>
             )}
           </div>

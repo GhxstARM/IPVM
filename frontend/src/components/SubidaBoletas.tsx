@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react'
 import AdminEventos from './AdminEventos'
 import AdminInicio from './AdminInicio'
+import AdminFinanzas from './AdminFinanzas'
 
-const API_URL = 'http://localhost:3000'
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 
 const CATEGORIAS = [
   'Alimentación',
@@ -18,6 +19,7 @@ const CATEGORIAS = [
 
 interface SubidaBoletasProps {
   onLogout: () => void
+  token: string
 }
 
 interface FormState {
@@ -25,12 +27,13 @@ interface FormState {
   preview: string | null
 }
 
-type ModuloSecretaria = 'boletas' | 'eventos' | 'inicio'
+type ModuloSecretaria = 'boletas' | 'eventos' | 'inicio' | 'finanzas'
 
 const MODULOS: { id: ModuloSecretaria; label: string }[] = [
   { id: 'boletas', label: 'Boletas' },
   { id: 'eventos', label: 'Eventos' },
   { id: 'inicio', label: 'Mensaje Pastoral' },
+  { id: 'finanzas', label: 'Gastos e ingresos' },
 ]
 
 // Datos que devuelve la IA, editables antes de subirlos
@@ -57,7 +60,7 @@ const inputAFecha = (val: string): string => {
   return y && m && d ? `${d}-${m}-${y}` : val
 }
 
-export default function SubidaBoletas({ onLogout }: SubidaBoletasProps) {
+export default function SubidaBoletas({ onLogout, token }: SubidaBoletasProps) {
   const [moduloActivo, setModuloActivo] = useState<ModuloSecretaria>('boletas')
   const [form, setForm] = useState<FormState>({ archivo: null, preview: null })
   const [dragging, setDragging] = useState(false)
@@ -163,7 +166,7 @@ export default function SubidaBoletas({ onLogout }: SubidaBoletasProps) {
     try {
       const response = await fetch(`${API_URL}/api/gastos`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           gasto: datos.gasto,
           fecha: inputAFecha(datos.fecha),
@@ -220,7 +223,7 @@ export default function SubidaBoletas({ onLogout }: SubidaBoletasProps) {
       </div>
 
       {/* ── Navegación de módulos (tabs) ── */}
-      <div className="grid grid-cols-3 gap-1 bg-stone-100 p-1.5 rounded-2xl">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-stone-100 p-1.5 rounded-2xl">
         {MODULOS.map((mod) => (
           <button
             key={mod.id}
@@ -241,6 +244,7 @@ export default function SubidaBoletas({ onLogout }: SubidaBoletasProps) {
 
       {/* ── Módulo: Editor de Mensaje de Inicio ── */}
       {moduloActivo === 'inicio' && <AdminInicio />}
+      {moduloActivo === 'finanzas' && <AdminFinanzas token={token} />}
 
       {/* ── Módulo: Carga de Boletas ── */}
       {moduloActivo === 'boletas' && (
