@@ -111,6 +111,10 @@ export default function Transparencia() {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [mes, setMes] = useState('')
+  const [tipoFiltro, setTipoFiltro] = useState('periodo')
+  const [dia, setDia] = useState('')
+  const [desde, setDesde] = useState('')
+  const [hasta, setHasta] = useState('')
   const [consultadoEn, setConsultadoEn] = useState<Date | null>(null)
 
   const cargar = async () => {
@@ -153,6 +157,12 @@ export default function Transparencia() {
   )
 
   const anios = useMemo(() => aniosDisponibles(meses), [meses])
+  const rangoInvalido = Boolean(desde && hasta && desde > hasta)
+  const periodoVisible = tipoFiltro === 'dia'
+    ? (dia ? formatFecha(dia) : 'Selecciona un día')
+    : tipoFiltro === 'rango'
+      ? (rangoInvalido ? 'Rango inválido' : `${desde ? formatFecha(desde) : 'Sin límite inicial'} – ${hasta ? formatFecha(hasta) : 'Sin límite final'}`)
+      : nombrePeriodo(mes)
 
   // Todos los cálculos se hacen aquí con las filas de la hoja
   const resumen = useMemo(() => {
@@ -160,8 +170,17 @@ export default function Transparencia() {
 
     // 'todos' -> prefijo vacío (coincide con todo); 'YYYY' o 'YYYY-MM' -> filtra por prefijo
     const prefijo = mes === PERIODO_TODOS ? '' : mes
-    const gastosMes = datos.gastos.filter((g) => (g.fecha ?? '').startsWith(prefijo))
-    const ingresosMes = datos.ingresos.filter((i) => (i.fecha ?? '').startsWith(prefijo))
+    const coincideFecha = ({ fecha }: { fecha: string }) => {
+      const fechaDia = (fecha ?? '').slice(0, 10)
+      if (tipoFiltro === 'dia') return Boolean(dia) && fechaDia === dia
+      if (tipoFiltro === 'rango') {
+        return !rangoInvalido && /^\d{4}-\d{2}-\d{2}$/.test(fechaDia)
+          && (!desde || fechaDia >= desde) && (!hasta || fechaDia <= hasta)
+      }
+      return (fecha ?? '').startsWith(prefijo)
+    }
+    const gastosMes = datos.gastos.filter(coincideFecha)
+    const ingresosMes = datos.ingresos.filter(coincideFecha)
 
     const totalGastado = gastosMes.reduce((s, g) => s + g.monto, 0)
     const totalRecaudado = ingresosMes.reduce((s, i) => s + i.monto, 0)
@@ -205,7 +224,7 @@ export default function Transparencia() {
       movimientos,
       hayIngresos: ingresosMes.length > 0,
     }
-  }, [datos, mes])
+  }, [datos, mes, tipoFiltro, dia, desde, hasta, rangoInvalido])
 
   if (cargando && !datos) {
     return (
@@ -240,11 +259,27 @@ export default function Transparencia() {
             📊 Rendición de Cuentas
           </h2>
           <p className="text-stone-500 text-sm">
-            Período: {nombrePeriodo(mes)} · Montos en Pesos Chilenos (CLP)
+            Período: {periodoVisible} · Montos en Pesos Chilenos (CLP)
           </p>
         </div>
 
         {meses.length > 0 && (
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-1 text-sm text-stone-700">
+              Filtrar por
+              <select
+                value={tipoFiltro}
+                onChange={(e) => setTipoFiltro(e.target.value)}
+                className="border border-stone-300 bg-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="periodo">Período</option>
+                <option value="dia">Por día</option>
+                <option value="rango">Rango de fechas</option>
+              </select>
+            </label>
+            {tipoFiltro === 'periodo' && (
+            <label className="flex flex-col gap-1 text-sm text-stone-700">
+              Período
           <select
             value={mes}
             onChange={(e) => setMes(e.target.value)}
@@ -267,8 +302,60 @@ export default function Transparencia() {
               ))}
             </optgroup>
           </select>
+            </label>
+            )}
+            {tipoFiltro === 'dia' && (
+              <label className="flex flex-col gap-1 text-sm text-stone-700">
+                Día
+                <input
+                  type="date"
+                  value={dia}
+                  onChange={(e) => setDia(e.target.value)}
+                  onClick={(e) => e.currentTarget.showPicker?.()}
+                  className="border border-stone-300 bg-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500"
+                />
+              </label>
+            )}
+            {tipoFiltro === 'rango' && (
+              <>
+                <label className="flex flex-col gap-1 text-sm text-stone-700">
+                  Desde
+                  <input type="date" value={desde} max={hasta || undefined}
+                    onChange={(e) => setDesde(e.target.value)}
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    aria-invalid={rangoInvalido} aria-describedby={rangoInvalido ? 'error-rango' : undefined}
+                    className="border border-stone-300 bg-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500" />
+                </label>
+                <label className="flex flex-col gap-1 text-sm text-stone-700">
+                  Hasta
+                  <input type="date" value={hasta} min={desde || undefined}
+                    onChange={(e) => setHasta(e.target.value)}
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    aria-invalid={rangoInvalido} aria-describedby={rangoInvalido ? 'error-rango' : undefined}
+                    className="border border-stone-300 bg-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500" />
+                </label>
+              </>
+            )}
+            {tipoFiltro !== 'periodo' && (
+              <button type="button" onClick={() => {
+                setTipoFiltro('periodo')
+                setMes(PERIODO_TODOS)
+                setDia('')
+                setDesde('')
+                setHasta('')
+              }} className="px-3 py-2 text-sm text-amber-800 underline rounded-lg focus:ring-2 focus:ring-amber-500">
+                Limpiar filtro
+              </button>
+            )}
+          </div>
         )}
       </div>
+
+      {tipoFiltro === 'rango' && rangoInvalido && (
+        <p id="error-rango" role="alert" className="text-sm text-rose-700">
+          La fecha inicial debe ser anterior o igual a la fecha final.
+        </p>
+      )}
 
       {meses.length === 0 && (
         <div className="bg-stone-100 border border-stone-200 rounded-2xl p-5 text-sm text-stone-500">
