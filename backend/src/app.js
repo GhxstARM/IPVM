@@ -191,8 +191,6 @@ app.post('/api/ocr', upload.single('image'), async (req, res) => {
 // Body esperado: { gasto, fecha, razon, monto }
 app.post('/api/gastos', requiereSecretaria, async (req, res) => {
 
-app.post('/api/gastos', async (req, res) => {
-
   try {
     const { gasto, fecha, razon, monto } = req.body || {};
     const digitos = String(monto ?? '').replace(/[^\d]/g, '');
