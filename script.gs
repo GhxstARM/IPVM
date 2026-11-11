@@ -36,6 +36,7 @@ function indicesHoja(hoja, tipo) {
     razon: indice(headers, ['destino', 'razon', 'descripcion']),
     tipoIngreso: indice(headers, ['tipo ingreso', 'tipo']),
     descripcion: indice(headers, ['descripcion', 'razon']),
+    actualizadoEn: indice(headers, ['ultima actualizacion', 'actualizado', 'actualizado en', 'ultima modificacion', 'fecha actualizacion', 'timestamp', 'updatedat']),
   };
   return idx;
 }
@@ -65,6 +66,18 @@ function fechaISO(valor, zona) {
   return iso ? iso[0] : '';
 }
 
+function fechaHoraISO(valor, zona) {
+  if (!valor) return '';
+  if (valor instanceof Date) {
+    if (isNaN(valor.getTime())) return '';
+    return Utilities.formatDate(valor, zona, "yyyy-MM-dd'T'HH:mm:ss'Z'");
+  }
+  var texto = String(valor).trim();
+  if (!texto) return '';
+  var d = new Date(texto);
+  return !isNaN(d.getTime()) ? d.toISOString() : '';
+}
+
 function fechaReal(valor) {
   var texto = String(valor || '').trim();
   var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(texto);
@@ -91,19 +104,24 @@ function leerRegistros(ss, tipo) {
     var fila = data[r];
     var monto = idx.monto >= 0 ? Number(fila[idx.monto]) : NaN;
     if (idx.monto < 0 || fila[idx.monto] === '' || isNaN(monto)) continue;
+    var actualizadoVal = idx.actualizadoEn >= 0 ? fechaHoraISO(fila[idx.actualizadoEn], zona) : '';
     if (tipo === 'gastos') {
       salida.push({
         id: idx.id >= 0 ? fila[idx.id] : r,
         gasto: idx.gasto >= 0 ? String(fila[idx.gasto] || 'Otros') : 'Otros',
         fecha: idx.fecha >= 0 ? fechaISO(fila[idx.fecha], zona) : '',
-        razon: idx.razon >= 0 ? String(fila[idx.razon] || '') : '', monto: monto
+        razon: idx.razon >= 0 ? String(fila[idx.razon] || '') : '',
+        monto: monto,
+        actualizadoEn: actualizadoVal
       });
     } else {
       salida.push({
         id: idx.id >= 0 ? fila[idx.id] : r,
         fecha: idx.fecha >= 0 ? fechaISO(fila[idx.fecha], zona) : '',
         tipoIngreso: idx.tipoIngreso >= 0 ? String(fila[idx.tipoIngreso] || '') : '',
-        descripcion: idx.descripcion >= 0 ? String(fila[idx.descripcion] || '') : '', monto: monto
+        descripcion: idx.descripcion >= 0 ? String(fila[idx.descripcion] || '') : '',
+        monto: monto,
+        actualizadoEn: actualizadoVal
       });
     }
   }
@@ -169,6 +187,9 @@ function guardarRegistro(ss, tipo, operacion, id, registro) {
     if (!String(registro.descripcion || '').trim()) throw new Error('La descripción es obligatoria.');
   }
   if (idx.fecha < 0 || idx.monto < 0) throw new Error('Faltan las columnas Fecha o Monto en la hoja.');
+  if (idx.actualizadoEn >= 0) {
+    values[idx.actualizadoEn] = new Date();
+  }
   var newId = id;
   if (operacion === 'create') {
     var idsExistentes = hoja.getLastRow() > 1 ? hoja.getRange(2, idCol + 1, hoja.getLastRow() - 1, 1).getValues() : [];
@@ -182,6 +203,7 @@ function guardarRegistro(ss, tipo, operacion, id, registro) {
     Object.keys(values).forEach(function(k) { if (Number(k) >= 0) hoja.getRange(filaNum, Number(k) + 1).setValue(values[k]); });
   }
   if (idx.fecha >= 0) hoja.getRange(filaNum, idx.fecha + 1).setNumberFormat('dd-mm-yyyy');
+  if (idx.actualizadoEn >= 0) hoja.getRange(filaNum, idx.actualizadoEn + 1).setNumberFormat('dd-mm-yyyy hh:mm:ss');
   return { success: true, id: newId };
 }
 

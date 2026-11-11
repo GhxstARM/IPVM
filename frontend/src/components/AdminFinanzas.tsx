@@ -1,14 +1,37 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 type Tipo = 'gastos' | 'ingresos'
-interface Gasto { id: number | string; gasto: string; fecha: string; razon: string; monto: number }
-interface Ingreso { id: number | string; fecha: string; tipoIngreso: string; descripcion: string; monto: number }
+interface Gasto { id: number | string; gasto: string; fecha: string; razon: string; monto: number; actualizadoEn?: string }
+interface Ingreso { id: number | string; fecha: string; tipoIngreso: string; descripcion: string; monto: number; actualizadoEn?: string }
 type Registro = Gasto | Ingreso
 
+const STORAGE_MODS = 'ipvm_finanzas_modificaciones'
+const leerModificacionesLocales = (): Record<string, number> => {
+  try {
+    const raw = localStorage.getItem(STORAGE_MODS)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+const formatearFechaHora = (iso?: string) => {
+  if (!iso || !iso.trim()) return '—'
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return '—'
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const yyyy = d.getFullYear()
+  const hh = String(d.getHours()).padStart(2, '0')
+  const min = String(d.getMinutes()).padStart(2, '0')
+  return `${dd}-${mm}-${yyyy} ${hh}:${min}`
+}
+
 const fechaInput = (value: string) => {
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
-  const m = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/.exec(value)
+  const str = String(value || '').trim()
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.slice(0, 10)
+  const m = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/.exec(str)
   return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : ''
 }
 const fechaSheet = (value: string) => { const [y, m, d] = value.split('-'); return `${d}-${m}-${y}` }
@@ -18,6 +41,7 @@ const hoyInput = () => { const now = new Date(); return `${now.getFullYear()}-${
 export default function AdminFinanzas({ token }: { token: string }) {
   const [tipo, setTipo] = useState<Tipo>('gastos')
   const [datos, setDatos] = useState<{ gastos: Gasto[]; ingresos: Ingreso[] }>({ gastos: [], ingresos: [] })
+  const [modificaciones, setModificaciones] = useState<Record<string, number>>(leerModificacionesLocales)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
   const [mensaje, setMensaje] = useState('')
@@ -60,6 +84,18 @@ export default function AdminFinanzas({ token }: { token: string }) {
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'No se pudo guardar el registro.')
+      const targetId = data.id ?? id
+      if (targetId !== undefined && targetId !== null) {
+        const ahora = Date.now()
+        try {
+          const mods = leerModificacionesLocales()
+          mods[String(targetId)] = ahora
+          localStorage.setItem(STORAGE_MODS, JSON.stringify(mods))
+        } catch {
+          // Ignorar si localStorage está deshabilitado
+        }
+        setModificaciones((prev) => ({ ...prev, [String(targetId)]: ahora }))
+      }
       setEditando(null); setFormAbierto(false); setMensaje(id !== undefined ? 'Registro actualizado.' : 'Registro agregado.')
       await cargar()
     } catch (e) { setError(e instanceof Error ? e.message : 'Error de conexión.') }
@@ -77,7 +113,29 @@ export default function AdminFinanzas({ token }: { token: string }) {
     } catch (e) { setError(e instanceof Error ? e.message : 'Error de conexión.') }
   }
 
-  const registros: Registro[] = tipo === 'gastos' ? datos.gastos : datos.ingresos
+  const registros: Registro[] = useMemo(() => {
+    const lista = tipo === 'gastos' ? datos.gastos : datos.ingresos
+    return [...lista].sort((a, b) => {
+      const rawA = a.actualizadoEn ? new Date(a.actualizadoEn).getTime() : 0
+      const rawB = b.actualizadoEn ? new Date(b.actualizadoEn).getTime() : 0
+      const tsA = !isNaN(rawA) && rawA > 0 ? rawA : (modificaciones[String(a.id)] ?? 0)
+      const tsB = !isNaN(rawB) && rawB > 0 ? rawB : (modificaciones[String(b.id)] ?? 0)
+
+      // 1. Prioridad: Última modificación / registro más reciente
+      if (tsA !== tsB) {
+        return tsB - tsA
+      }
+
+      // 2. Desempate: ID descendente (último registrado arriba)
+      const idA = Number(a.id)
+      const idB = Number(b.id)
+      if (!isNaN(idA) && !isNaN(idB)) {
+        return idB - idA
+      }
+      return String(b.id ?? '').localeCompare(String(a.id ?? ''), undefined, { numeric: true })
+    })
+  }, [tipo, datos, modificaciones])
+
   return <section className="space-y-5">
     <div><h3 className="text-xl font-bold text-stone-800">Administración financiera</h3><p className="mt-1 text-sm text-stone-500">Administra los movimientos registrados en Google Sheets.</p></div>
     <div className="flex gap-2 rounded-xl bg-stone-100 p-1">
@@ -99,7 +157,7 @@ export default function AdminFinanzas({ token }: { token: string }) {
       <label className="space-y-1 text-sm font-medium">Monto (CLP)<input required min="1" step="1" type="number" className={inputClass} value={form.monto ?? ''} onChange={e => setForm({ ...form, monto: e.target.value })} /></label>
       <div className="flex gap-2 sm:col-span-2"><button disabled={guardando} className="rounded-xl bg-amber-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{guardando ? 'Guardando…' : 'Guardar'}</button><button type="button" onClick={() => { setEditando(null); setFormAbierto(false) }} className="rounded-xl border border-stone-300 px-4 py-2 text-sm">Cancelar</button></div>
     </form>}
-    {cargando ? <p className="py-8 text-center text-sm text-stone-500">Cargando registros…</p> : registros.length === 0 ? <p className="rounded-xl bg-white p-8 text-center text-sm text-stone-500">No hay {tipo} registrados.</p> : <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white"><table className="w-full min-w-[640px] text-left text-sm"><thead className="bg-stone-100 text-xs uppercase text-stone-500"><tr><th className="px-4 py-3">ID</th><th className="px-4 py-3">Fecha</th><th className="px-4 py-3">Detalle</th><th className="px-4 py-3">Monto</th><th className="px-4 py-3">Acciones</th></tr></thead><tbody className="divide-y divide-stone-100">{registros.map((r) => { const g = tipo === 'gastos' ? r as Gasto : null; const i = tipo === 'ingresos' ? r as Ingreso : null; return <tr key={r.id}><td className="px-4 py-3">{r.id}</td><td className="px-4 py-3 whitespace-nowrap">{r.fecha}</td><td className="px-4 py-3">{g ? `${g.gasto}: ${g.razon}` : `${i?.tipoIngreso}: ${i?.descripcion}`}</td><td className="px-4 py-3 whitespace-nowrap">${Number(r.monto).toLocaleString('es-CL')}</td><td className="px-4 py-3"><div className="flex gap-2"><button onClick={() => abrirFormulario(r)} className="font-medium text-amber-800 hover:underline">Editar</button><button onClick={() => void eliminar(r.id)} className="font-medium text-red-700 hover:underline">Eliminar</button></div></td></tr> })}</tbody></table></div>}
+    {cargando ? <p className="py-8 text-center text-sm text-stone-500">Cargando registros…</p> : registros.length === 0 ? <p className="rounded-xl bg-white p-8 text-center text-sm text-stone-500">No hay {tipo} registrados.</p> : <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white"><table className="w-full min-w-[760px] text-left text-sm"><thead className="bg-stone-100 text-xs uppercase text-stone-500"><tr><th className="px-4 py-3">ID</th><th className="px-4 py-3">Fecha</th><th className="px-4 py-3">Detalle</th><th className="px-4 py-3">Monto</th><th className="px-4 py-3">Última actualización</th><th className="px-4 py-3">Acciones</th></tr></thead><tbody className="divide-y divide-stone-100">{registros.map((r) => { const g = tipo === 'gastos' ? r as Gasto : null; const i = tipo === 'ingresos' ? r as Ingreso : null; const actIso = r.actualizadoEn || (modificaciones[String(r.id)] ? new Date(modificaciones[String(r.id)]).toISOString() : ''); return <tr key={r.id}><td className="px-4 py-3">{r.id}</td><td className="px-4 py-3 whitespace-nowrap">{r.fecha}</td><td className="px-4 py-3">{g ? `${g.gasto}: ${g.razon}` : `${i?.tipoIngreso}: ${i?.descripcion}`}</td><td className="px-4 py-3 whitespace-nowrap">${Number(r.monto).toLocaleString('es-CL')}</td><td className="px-4 py-3 whitespace-nowrap text-xs text-stone-500">{formatearFechaHora(actIso)}</td><td className="px-4 py-3"><div className="flex gap-2"><button onClick={() => abrirFormulario(r)} className="font-medium text-amber-800 hover:underline">Editar</button><button onClick={() => void eliminar(r.id)} className="font-medium text-red-700 hover:underline">Eliminar</button></div></td></tr> })}</tbody></table></div>}
     <button onClick={() => void cargar()} className="text-sm font-medium text-stone-500 underline">Actualizar lista</button>
   </section>
 }
