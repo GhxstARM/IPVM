@@ -34,7 +34,12 @@ const fechaInput = (value: string) => {
   const m = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/.exec(str)
   return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : ''
 }
-const fechaSheet = (value: string) => { const [y, m, d] = value.split('-'); return `${d}-${m}-${y}` }
+
+const fechaSheet = (value?: string) => {
+  if (!value) return ''
+  const [y, m, d] = value.split('-')
+  return `${d ?? ''}-${m ?? ''}-${y ?? ''}`
+}
 const inputClass = 'w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200'
 const hoyInput = () => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}` }
 
