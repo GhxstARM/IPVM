@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 type Tipo = 'gastos' | 'ingresos'
@@ -40,8 +40,12 @@ const fechaSheet = (value?: string) => {
   const [y, m, d] = value.split('-')
   return `${d ?? ''}-${m ?? ''}-${y ?? ''}`
 }
+
 const inputClass = 'w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200'
-const hoyInput = () => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}` }
+const hoyInput = () => {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
 
 export default function AdminFinanzas({ token }: { token: string }) {
   const [tipo, setTipo] = useState<Tipo>('gastos')
@@ -55,40 +59,87 @@ export default function AdminFinanzas({ token }: { token: string }) {
   const [form, setForm] = useState<Record<string, string>>({})
   const [guardando, setGuardando] = useState(false)
 
-  const authHeaders = { Authorization: `Bearer ${token}` }
+  const formRef = useRef<HTMLFormElement | null>(null)
+  const authHeaders = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token])
+
   const cargar = async () => {
-    setCargando(true); setError('')
+    setCargando(true)
+    setError('')
     try {
       const response = await fetch(`${API_URL}/api/finanzas`, { headers: authHeaders })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'No se pudieron cargar los registros.')
       setDatos({ gastos: data.gastos ?? [], ingresos: data.ingresos ?? [] })
-    } catch (e) { setError(e instanceof Error ? e.message : 'Error de conexión.') }
-    finally { setCargando(false) }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error de conexión.')
+    } finally {
+      setCargando(false)
+    }
   }
-  useEffect(() => { void cargar() }, [])
+
+  useEffect(() => {
+    void cargar()
+  }, [])
 
   const abrirFormulario = (registro?: Registro) => {
     setFormAbierto(true)
-    setEditando(registro ?? null); setMensaje(''); setError('')
-    if (!registro) setForm({ fecha: hoyInput(), gasto: 'Otros', razon: '', monto: '', tipoIngreso: 'Presencial', descripcion: '' })
-    else setForm({ ...registro, fecha: fechaInput(registro.fecha), monto: String(registro.monto) } as Record<string, string>)
+    setEditando(registro ?? null)
+    setMensaje('')
+    setError('')
+
+    if (!registro) {
+      setForm({
+        fecha: hoyInput(),
+        gasto: 'Otros',
+        razon: '',
+        monto: '',
+        tipoIngreso: 'Presencial',
+        descripcion: '',
+      })
+    } else {
+      setForm({
+        ...registro,
+        fecha: fechaInput(registro.fecha),
+        monto: String(registro.monto),
+      } as Record<string, string>)
+    }
+
+    // Llevar automáticamente la vista hacia el formulario de edición
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      const primerInput = formRef.current?.querySelector<HTMLInputElement | HTMLSelectElement>('input, select')
+      primerInput?.focus()
+    }, 80)
+  }
+
+  const cerrarFormulario = () => {
+    setEditando(null)
+    setFormAbierto(false)
   }
 
   const guardar = async (e: React.FormEvent) => {
-    e.preventDefault(); setGuardando(true); setError(''); setMensaje('')
+    e.preventDefault()
+    setGuardando(true)
+    setError('')
+    setMensaje('')
     const gasto = tipo === 'gastos'
     const body = gasto
       ? { gasto: form.gasto, fecha: fechaSheet(form.fecha), razon: form.razon, monto: form.monto }
       : { tipoIngreso: form.tipoIngreso, fecha: fechaSheet(form.fecha), descripcion: form.descripcion, monto: form.monto }
+
     try {
       const id = editando?.id
-      const response = await fetch(`${API_URL}/api/finanzas/${tipo}${id !== undefined ? `/${encodeURIComponent(String(id))}` : ''}`, {
-        method: id !== undefined ? 'PUT' : 'POST',
-        headers: { ...authHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-      })
+      const response = await fetch(
+        `${API_URL}/api/finanzas/${tipo}${id !== undefined ? `/${encodeURIComponent(String(id))}` : ''}`,
+        {
+          method: id !== undefined ? 'PUT' : 'POST',
+          headers: { ...authHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }
+      )
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'No se pudo guardar el registro.')
+
       const targetId = data.id ?? id
       if (targetId !== undefined && targetId !== null) {
         const ahora = Date.now()
@@ -101,21 +152,34 @@ export default function AdminFinanzas({ token }: { token: string }) {
         }
         setModificaciones((prev) => ({ ...prev, [String(targetId)]: ahora }))
       }
-      setEditando(null); setFormAbierto(false); setMensaje(id !== undefined ? 'Registro actualizado.' : 'Registro agregado.')
+
+      setEditando(null)
+      setFormAbierto(false)
+      setMensaje(id !== undefined ? 'Registro actualizado con éxito.' : 'Registro agregado con éxito.')
       await cargar()
-    } catch (e) { setError(e instanceof Error ? e.message : 'Error de conexión.') }
-    finally { setGuardando(false) }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error de conexión.')
+    } finally {
+      setGuardando(false)
+    }
   }
 
   const eliminar = async (id: number | string) => {
     if (!window.confirm(`¿Eliminar este ${tipo === 'gastos' ? 'gasto' : 'ingreso'}? Esta acción no se puede deshacer.`)) return
-    setError(''); setMensaje('')
+    setError('')
+    setMensaje('')
     try {
-      const response = await fetch(`${API_URL}/api/finanzas/${tipo}/${encodeURIComponent(String(id))}`, { method: 'DELETE', headers: authHeaders })
+      const response = await fetch(`${API_URL}/api/finanzas/${tipo}/${encodeURIComponent(String(id))}`, {
+        method: 'DELETE',
+        headers: authHeaders,
+      })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'No se pudo eliminar el registro.')
-      setMensaje('Registro eliminado.'); await cargar()
-    } catch (e) { setError(e instanceof Error ? e.message : 'Error de conexión.') }
+      setMensaje('Registro eliminado correctamente.')
+      await cargar()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error de conexión.')
+    }
   }
 
   const registros: Registro[] = useMemo(() => {
@@ -126,12 +190,10 @@ export default function AdminFinanzas({ token }: { token: string }) {
       const tsA = !isNaN(rawA) && rawA > 0 ? rawA : (modificaciones[String(a.id)] ?? 0)
       const tsB = !isNaN(rawB) && rawB > 0 ? rawB : (modificaciones[String(b.id)] ?? 0)
 
-      // 1. Prioridad: Última modificación / registro más reciente
       if (tsA !== tsB) {
         return tsB - tsA
       }
 
-      // 2. Desempate: ID descendente (último registrado arriba)
       const idA = Number(a.id)
       const idB = Number(b.id)
       if (!isNaN(idA) && !isNaN(idB)) {
@@ -141,28 +203,307 @@ export default function AdminFinanzas({ token }: { token: string }) {
     })
   }, [tipo, datos, modificaciones])
 
-  return <section className="space-y-5">
-    <div><h3 className="text-xl font-bold text-stone-800">Administración financiera</h3><p className="mt-1 text-sm text-stone-500">Administra los movimientos registrados en Google Sheets.</p></div>
-    <div className="flex gap-2 rounded-xl bg-stone-100 p-1">
-      {(['gastos', 'ingresos'] as Tipo[]).map((t) => <button key={t} onClick={() => { setTipo(t); setEditando(null); setFormAbierto(false); setMensaje(''); setError('') }} className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold capitalize ${tipo === t ? 'bg-white text-amber-800 shadow-sm' : 'text-stone-500'}`}>{t} ({t === 'gastos' ? datos.gastos.length : datos.ingresos.length})</button>)}
-    </div>
-    {!formAbierto && <button onClick={() => abrirFormulario()} className="rounded-xl bg-amber-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-800">+ Agregar {tipo === 'gastos' ? 'gasto' : 'ingreso'}</button>}
-    {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-    {mensaje && <p role="status" className="rounded-xl bg-green-50 p-3 text-sm text-green-700">{mensaje}</p>}
-    {formAbierto && <form onSubmit={guardar} className="grid gap-4 rounded-2xl border border-stone-200 bg-white p-4 sm:grid-cols-2">
-      <h4 className="font-bold text-stone-800 sm:col-span-2">{editando?.id !== undefined ? 'Editar' : 'Agregar'} {tipo === 'gastos' ? 'gasto' : 'ingreso'}</h4>
-      <label className="space-y-1 text-sm font-medium">Fecha<input required type="date" className={inputClass} value={form.fecha ?? ''} onChange={e => setForm({ ...form, fecha: e.target.value })} /></label>
-      {tipo === 'gastos' ? <>
-        <label className="space-y-1 text-sm font-medium">Categoría<input required className={inputClass} value={form.gasto ?? ''} onChange={e => setForm({ ...form, gasto: e.target.value })} /></label>
-        <label className="space-y-1 text-sm font-medium sm:col-span-2">Razón / destino<input required className={inputClass} value={form.razon ?? ''} onChange={e => setForm({ ...form, razon: e.target.value })} /></label>
-      </> : <>
-        <label className="space-y-1 text-sm font-medium">Tipo de ingreso<select className={inputClass} value={form.tipoIngreso ?? 'Presencial'} onChange={e => setForm({ ...form, tipoIngreso: e.target.value })}><option>Presencial</option><option>Online</option></select></label>
-        <label className="space-y-1 text-sm font-medium sm:col-span-2">Descripción<input required className={inputClass} value={form.descripcion ?? ''} onChange={e => setForm({ ...form, descripcion: e.target.value })} /></label>
-      </>}
-      <label className="space-y-1 text-sm font-medium">Monto (CLP)<input required min="1" step="1" type="number" className={inputClass} value={form.monto ?? ''} onChange={e => setForm({ ...form, monto: e.target.value })} /></label>
-      <div className="flex gap-2 sm:col-span-2"><button disabled={guardando} className="rounded-xl bg-amber-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{guardando ? 'Guardando…' : 'Guardar'}</button><button type="button" onClick={() => { setEditando(null); setFormAbierto(false) }} className="rounded-xl border border-stone-300 px-4 py-2 text-sm">Cancelar</button></div>
-    </form>}
-    {cargando ? <p className="py-8 text-center text-sm text-stone-500">Cargando registros…</p> : registros.length === 0 ? <p className="rounded-xl bg-white p-8 text-center text-sm text-stone-500">No hay {tipo} registrados.</p> : <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white"><table className="w-full min-w-[760px] text-left text-sm"><thead className="bg-stone-100 text-xs uppercase text-stone-500"><tr><th className="px-4 py-3">ID</th><th className="px-4 py-3">Fecha</th><th className="px-4 py-3">Detalle</th><th className="px-4 py-3">Monto</th><th className="px-4 py-3">Última actualización</th><th className="px-4 py-3">Acciones</th></tr></thead><tbody className="divide-y divide-stone-100">{registros.map((r) => { const g = tipo === 'gastos' ? r as Gasto : null; const i = tipo === 'ingresos' ? r as Ingreso : null; const actIso = r.actualizadoEn || (modificaciones[String(r.id)] ? new Date(modificaciones[String(r.id)]).toISOString() : ''); return <tr key={r.id}><td className="px-4 py-3">{r.id}</td><td className="px-4 py-3 whitespace-nowrap">{r.fecha}</td><td className="px-4 py-3">{g ? `${g.gasto}: ${g.razon}` : `${i?.tipoIngreso}: ${i?.descripcion}`}</td><td className="px-4 py-3 whitespace-nowrap">${Number(r.monto).toLocaleString('es-CL')}</td><td className="px-4 py-3 whitespace-nowrap text-xs text-stone-500">{formatearFechaHora(actIso)}</td><td className="px-4 py-3"><div className="flex gap-2"><button onClick={() => abrirFormulario(r)} className="font-medium text-amber-800 hover:underline">Editar</button><button onClick={() => void eliminar(r.id)} className="font-medium text-red-700 hover:underline">Eliminar</button></div></td></tr> })}</tbody></table></div>}
-    <button onClick={() => void cargar()} className="text-sm font-medium text-stone-500 underline">Actualizar lista</button>
-  </section>
+  return (
+    <section className="space-y-6">
+      {/* ── Encabezado ── */}
+      <div>
+        <h3 className="text-xl font-bold text-stone-800">Administración Financiera</h3>
+        <p className="mt-1 text-sm text-stone-500">
+          Administra y consulta los movimientos registrados en Google Sheets.
+        </p>
+      </div>
+
+      {/* ── Selector de Tipo (Gastos / Ingresos) ── */}
+      <div className="flex gap-2 rounded-2xl bg-stone-100 p-1.5">
+        {(['gastos', 'ingresos'] as Tipo[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => {
+              setTipo(t)
+              cerrarFormulario()
+              setMensaje('')
+              setError('')
+            }}
+            className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold capitalize transition-all ${
+              tipo === t ? 'bg-white text-amber-800 shadow-sm' : 'text-stone-500 hover:text-stone-800'
+            }`}
+          >
+            {t} ({t === 'gastos' ? datos.gastos.length : datos.ingresos.length})
+          </button>
+        ))}
+      </div>
+
+      {/* ── Botón Agregar ── */}
+      {!formAbierto && (
+        <button
+          onClick={() => abrirFormulario()}
+          className="inline-flex items-center gap-2 rounded-xl bg-amber-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-amber-800 transition-colors"
+        >
+          <span className="text-lg leading-none">+</span>
+          Agregar {tipo === 'gastos' ? 'Gasto' : 'Ingreso'}
+        </button>
+      )}
+
+      {/* ── Avisos de error y éxito ── */}
+      {error && (
+        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-sm font-medium text-red-700">
+          {error}
+        </div>
+      )}
+      {mensaje && (
+        <div role="status" className="rounded-xl border border-green-200 bg-green-50 p-3.5 text-sm font-medium text-green-700">
+          {mensaje}
+        </div>
+      )}
+
+      {/* ── Formulario de Creación / Edición ── */}
+      {formAbierto && (
+        <form
+          ref={formRef}
+          onSubmit={guardar}
+          className="grid gap-4 rounded-2xl border-2 border-amber-300 bg-white p-5 shadow-md sm:grid-cols-2 transition-all scroll-mt-6"
+        >
+          <div className="flex items-center justify-between sm:col-span-2 border-b border-stone-100 pb-3">
+            <div className="flex items-center gap-2">
+              <h4 className="font-bold text-stone-800 text-base">
+                {editando?.id !== undefined ? 'Editar' : 'Agregar'} {tipo === 'gastos' ? 'Gasto' : 'Ingreso'}
+              </h4>
+              {editando?.id !== undefined && (
+                <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                  ID #{editando.id}
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={cerrarFormulario}
+              className="text-xs font-medium text-stone-400 hover:text-stone-700"
+            >
+              ✕ Cerrar
+            </button>
+          </div>
+
+          <label className="space-y-1 text-sm font-medium text-stone-700">
+            Fecha
+            <input
+              required
+              type="date"
+              className={inputClass}
+              value={form.fecha ?? ''}
+              onChange={(e) => setForm({ ...form, fecha: e.target.value })}
+            />
+          </label>
+
+          {tipo === 'gastos' ? (
+            <>
+              <label className="space-y-1 text-sm font-medium text-stone-700">
+                Categoría
+                <input
+                  required
+                  placeholder="Ej: Servicios básicos, Comida, etc."
+                  className={inputClass}
+                  value={form.gasto ?? ''}
+                  onChange={(e) => setForm({ ...form, gasto: e.target.value })}
+                />
+              </label>
+              <label className="space-y-1 text-sm font-medium text-stone-700 sm:col-span-2">
+                Razón / Destino
+                <input
+                  required
+                  placeholder="Detalle o nombre del comercio"
+                  className={inputClass}
+                  value={form.razon ?? ''}
+                  onChange={(e) => setForm({ ...form, razon: e.target.value })}
+                />
+              </label>
+            </>
+          ) : (
+            <>
+              <label className="space-y-1 text-sm font-medium text-stone-700">
+                Tipo de ingreso
+                <select
+                  className={inputClass}
+                  value={form.tipoIngreso ?? 'Presencial'}
+                  onChange={(e) => setForm({ ...form, tipoIngreso: e.target.value })}
+                >
+                  <option value="Presencial">Presencial</option>
+                  <option value="Online">Online</option>
+                </select>
+              </label>
+              <label className="space-y-1 text-sm font-medium text-stone-700 sm:col-span-2">
+                Descripción
+                <input
+                  required
+                  placeholder="Detalle o concepto del ingreso"
+                  className={inputClass}
+                  value={form.descripcion ?? ''}
+                  onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
+                />
+              </label>
+            </>
+          )}
+
+          <label className="space-y-1 text-sm font-medium text-stone-700">
+            Monto (CLP)
+            <input
+              required
+              min="1"
+              step="1"
+              type="number"
+              placeholder="Ej: 25000"
+              className={inputClass}
+              value={form.monto ?? ''}
+              onChange={(e) => setForm({ ...form, monto: e.target.value })}
+            />
+          </label>
+
+          <div className="flex items-center gap-3 pt-2 sm:col-span-2">
+            <button
+              type="submit"
+              disabled={guardando}
+              className="rounded-xl bg-amber-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-amber-800 disabled:opacity-50 transition-colors"
+            >
+              {guardando ? 'Guardando…' : editando?.id !== undefined ? 'Actualizar registro' : 'Guardar registro'}
+            </button>
+            <button
+              type="button"
+              onClick={cerrarFormulario}
+              className="rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-sm font-medium text-stone-600 hover:bg-stone-50 transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* ── Tabla de Registros ── */}
+      {cargando ? (
+        <div className="rounded-2xl border border-stone-200 bg-white py-12 text-center text-sm text-stone-500">
+          <p className="animate-pulse">Cargando registros financieros…</p>
+        </div>
+      ) : registros.length === 0 ? (
+        <div className="rounded-2xl border border-stone-200 bg-white p-8 text-center text-sm text-stone-500">
+          No hay {tipo} registrados.
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-stone-200 bg-white shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm table-auto">
+              <thead className="bg-stone-100 text-xs font-semibold uppercase tracking-wider text-stone-500">
+                <tr>
+                  <th className="px-3.5 py-3 w-12 text-center">ID</th>
+                  <th className="px-3.5 py-3 whitespace-nowrap">Fecha</th>
+                  <th className="px-3.5 py-3 min-w-[140px]">Detalle</th>
+                  <th className="px-3.5 py-3 whitespace-nowrap text-right">Monto</th>
+                  <th className="px-3.5 py-3 whitespace-nowrap hidden md:table-cell text-stone-400">Actualizado</th>
+                  <th className="px-3.5 py-3 whitespace-nowrap text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {registros.map((r) => {
+                  const g = tipo === 'gastos' ? (r as Gasto) : null
+                  const i = tipo === 'ingresos' ? (r as Ingreso) : null
+                  const actIso =
+                    r.actualizadoEn ||
+                    (modificaciones[String(r.id)]
+                      ? new Date(modificaciones[String(r.id)]).toISOString()
+                      : '')
+                  const estaEditando = editando?.id === r.id
+
+                  return (
+                    <tr
+                      key={r.id}
+                      className={`transition-colors ${
+                        estaEditando
+                          ? 'bg-amber-50/80 ring-2 ring-inset ring-amber-400'
+                          : 'hover:bg-stone-50'
+                      }`}
+                    >
+                      {/* ID */}
+                      <td className="px-3.5 py-3 text-center font-mono text-xs text-stone-400">
+                        #{r.id}
+                      </td>
+
+                      {/* Fecha */}
+                      <td className="px-3.5 py-3 whitespace-nowrap text-xs sm:text-sm text-stone-700">
+                        {r.fecha}
+                        {/* Fecha de actualización en pantallas pequeñas */}
+                        <div className="md:hidden text-[10px] text-stone-400 mt-0.5">
+                          {formatearFechaHora(actIso)}
+                        </div>
+                      </td>
+
+                      {/* Detalle */}
+                      <td className="px-3.5 py-3">
+                        <div className="font-semibold text-stone-800 leading-snug">
+                          {g ? g.razon : i?.descripcion}
+                        </div>
+                        <div className="text-xs text-stone-500 mt-0.5">
+                          {g ? (
+                            <span className="inline-block rounded-md bg-stone-100 px-1.5 py-0.5 text-[11px] font-medium text-stone-600">
+                              {g.gasto}
+                            </span>
+                          ) : (
+                            <span
+                              className={`inline-block rounded-md px-1.5 py-0.5 text-[11px] font-medium ${
+                                (i?.tipoIngreso || '').toLowerCase().includes('pres')
+                                  ? 'bg-blue-50 text-blue-700'
+                                  : 'bg-emerald-50 text-emerald-700'
+                              }`}
+                            >
+                              {i?.tipoIngreso}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Monto */}
+                      <td className="px-3.5 py-3 whitespace-nowrap text-right font-bold text-stone-900 sm:text-sm">
+                        ${Number(r.monto).toLocaleString('es-CL')}
+                      </td>
+
+                      {/* Última actualización */}
+                      <td className="px-3.5 py-3 whitespace-nowrap hidden md:table-cell text-xs text-stone-500">
+                        {formatearFechaHora(actIso)}
+                      </td>
+
+                      {/* Acciones (Editar / Eliminar siempre a la vista) */}
+                      <td className="px-3.5 py-3 whitespace-nowrap text-right">
+                        <div className="inline-flex items-center gap-1.5">
+                          <button
+                            onClick={() => abrirFormulario(r)}
+                            className="rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-100 active:bg-amber-200 transition-colors"
+                            title="Editar este registro"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => void eliminar(r.id)}
+                            className="rounded-lg bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 active:bg-red-200 transition-colors"
+                            title="Eliminar este registro"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── Refrescar ── */}
+      <div className="pt-1">
+        <button
+          onClick={() => void cargar()}
+          className="text-xs font-medium text-stone-500 hover:text-stone-800 underline transition-colors"
+        >
+          ↻ Actualizar lista desde Google Sheets
+        </button>
+      </div>
+    </section>
+  )
 }
