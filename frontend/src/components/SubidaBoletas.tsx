@@ -67,9 +67,6 @@ export default function SubidaBoletas({ onLogout, token }: SubidaBoletasProps) {
   const [procesando, setProcesando] = useState(false)
   const [resultado, setResultado] = useState<string | null>(null)
 
-  // Texto crudo del OCR (Testing)
-  const [ocrText, setOcrText] = useState<string | null>(null)
-
   // Valores obtenidos por la IA, editables para confirmar
   const [datos, setDatos] = useState<DatosBoleta | null>(null)
   const [subiendo, setSubiendo] = useState(false)
@@ -80,7 +77,6 @@ export default function SubidaBoletas({ onLogout, token }: SubidaBoletasProps) {
 
   const limpiarResultados = () => {
     setResultado(null)
-    setOcrText(null)
     setDatos(null)
     setEstadoSubida(null)
   }
@@ -132,8 +128,6 @@ export default function SubidaBoletas({ onLogout, token }: SubidaBoletasProps) {
           `Razón: ${data.analisis.razon}\n` +
           `Monto: $${data.analisis.monto}`
         )
-        setOcrText(data.text)
-
         // Valores iniciales del formulario de confirmación
         const razon = String(data.analisis.razon ?? '')
         setDatos({
@@ -446,28 +440,7 @@ export default function SubidaBoletas({ onLogout, token }: SubidaBoletasProps) {
                 </div>
               )}
 
-              {/* Caja de Testing para el texto crudo del OCR */}
-              {ocrText && (
-                <div className="bg-stone-900 rounded-xl p-4 shadow-inner border border-stone-800">
-                  <div className="flex justify-between items-center mb-2">
-                    <p className="text-xs font-mono text-emerald-400 font-semibold flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                      RAW OCR DATA (MODO TEST)
-                    </p>
-                    <button
-                      onClick={() => navigator.clipboard.writeText(ocrText)}
-                      className="text-xs text-stone-400 hover:text-white transition-colors"
-                    >
-                      Copiar
-                    </button>
-                  </div>
-                  <textarea
-                    readOnly
-                    className="w-full h-48 bg-stone-950/50 text-stone-300 font-mono text-sm p-3 rounded-lg focus:outline-none resize-y border border-stone-700/50"
-                    value={ocrText || 'No se detectó texto.'}
-                  />
-                </div>
-              )}
+
             </div>
           )}
         </div>

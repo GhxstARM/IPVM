@@ -228,8 +228,62 @@ export default function Transparencia() {
 
   if (cargando && !datos) {
     return (
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
-        <p className="text-stone-500 text-sm">Cargando rendición de cuentas…</p>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-8 animate-pulse">
+        {/* Encabezado */}
+        <div className="space-y-2">
+          <div className="h-8 w-64 bg-stone-200 rounded-xl" />
+          <div className="h-4 w-48 bg-stone-100 rounded-lg" />
+        </div>
+
+        {/* Tarjetas de métricas */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="border border-stone-200 rounded-2xl p-5 space-y-3 bg-stone-50">
+              <div className="h-4 w-32 bg-stone-200 rounded" />
+              <div className="h-8 w-40 bg-stone-300 rounded-lg" />
+              <div className="h-3 w-28 bg-stone-100 rounded" />
+            </div>
+          ))}
+        </div>
+
+        {/* Desglose por categoría */}
+        <div className="bg-white border border-stone-200 rounded-2xl p-6 space-y-5">
+          <div className="h-5 w-52 bg-stone-200 rounded" />
+          <ul className="space-y-4">
+            {[1, 2, 3, 4].map((i) => (
+              <li key={i} className="space-y-1.5">
+                <div className="flex justify-between">
+                  <div className="h-4 w-32 bg-stone-200 rounded" />
+                  <div className="h-4 w-20 bg-stone-200 rounded" />
+                </div>
+                <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-stone-200 rounded-full" style={{ width: `${25 * i}%` }} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Últimos movimientos */}
+        <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-stone-100">
+            <div className="h-5 w-44 bg-stone-200 rounded" />
+          </div>
+          <ul className="divide-y divide-stone-100">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <li key={i} className="flex items-center justify-between px-6 py-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 rounded-full bg-stone-200 shrink-0" />
+                  <div className="space-y-1.5">
+                    <div className="h-3.5 w-40 bg-stone-200 rounded" />
+                    <div className="h-3 w-24 bg-stone-100 rounded" />
+                  </div>
+                </div>
+                <div className="h-4 w-20 bg-stone-200 rounded" />
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     )
   }
