@@ -1,89 +1,80 @@
+import { CalendarIcon, CrossIcon, InstagramIcon, LockIcon, MapPinIcon } from './icons'
+
 interface FooterProps {
   onAdminClick: () => void
 }
 
+const tituloColumna = 'mb-3 text-xs font-semibold uppercase tracking-widest text-stone-700'
+const filaContacto = 'flex items-start gap-2'
+
 export default function Footer({ onAdminClick }: FooterProps) {
   return (
-    <footer className="bg-white border-t border-stone-200">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-1 sm:grid-cols-3 gap-6 text-sm text-stone-500">
-
+    <footer className="border-t border-stone-200 bg-white">
+      <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 px-4 py-10 text-sm text-stone-600 sm:grid-cols-3 sm:px-6">
         {/* Columna 1: identidad */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="text-amber-700 text-lg">✝</span>
-            <span className="font-semibold text-stone-700">Por una Vida Mejor</span>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-700 text-white">
+              <CrossIcon className="h-4 w-4" />
+            </span>
+            <span className="font-bold text-stone-900">Por una Vida Mejor</span>
           </div>
-          <p className="text-xs leading-relaxed">
+          <p className="leading-relaxed">
             Somos un Ministerio Familiar comprometido con la fe, la solidaridad y el servicio al prójimo.
           </p>
-          <p className="text-xs italic text-amber-700 font-medium">
-            "Amamos a Dios y a su creación"
-          </p>
+          <p className="font-display text-base italic text-amber-800">“Amamos a Dios y a su creación”</p>
         </div>
 
         {/* Columna 2: contacto */}
-        <div className="space-y-1.5">
-          <p className="font-semibold text-stone-700 text-xs uppercase tracking-widest mb-2">Contacto</p>
-          <p className="flex items-center gap-1.5">
-            <svg className="w-3.5 h-3.5 shrink-0 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-            </svg>
-            Laguna Salada 1651, Peñalolén
-          </p>
-          <a
-            href="https://instagram.com/ministerio.pvm"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 hover:text-pink-600 transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-pink-500" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-            </svg>
-            @ministerio.pvm
-          </a>
+        <div>
+          <h2 className={tituloColumna}>Contacto</h2>
+          <ul className="space-y-2.5">
+            <li className={filaContacto}>
+              <MapPinIcon className="mt-0.5 h-4 w-4 shrink-0 text-stone-500" />
+              Laguna Salada 1651, Peñalolén
+            </li>
+            <li>
+              <a
+                href="https://instagram.com/ministerio.pvm"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${filaContacto} rounded-md transition-colors hover:text-pink-700`}
+              >
+                <InstagramIcon className="mt-0.5 h-4 w-4 shrink-0 text-pink-600" />
+                @ministerio.pvm
+                <span className="sr-only"> (se abre en una pestaña nueva)</span>
+              </a>
+            </li>
+          </ul>
         </div>
 
         {/* Columna 3: horarios */}
-        <div className="space-y-1.5">
-          <p className="font-semibold text-stone-700 text-xs uppercase tracking-widest mb-2">Horario de Reuniones</p>
-          <p className="flex items-center gap-1.5">
-            <svg className="w-3.5 h-3.5 shrink-0 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-            </svg>
-            Domingo — Reunión dominical 10:00 hrs
-          </p>
-          <p className="text-xs mt-2 text-stone-400">
-            Pastor Principal: <span className="font-semibold text-stone-500">Héctor Chanampe</span>
+        <div>
+          <h2 className={tituloColumna}>Horario de reuniones</h2>
+          <ul className="space-y-2.5">
+            <li className={filaContacto}>
+              <CalendarIcon className="mt-0.5 h-4 w-4 shrink-0 text-stone-500" />
+              Domingo — Reunión dominical 10:00 hrs
+            </li>
+          </ul>
+          <p className="mt-4 text-stone-500">
+            Pastor Principal: <span className="font-semibold text-stone-700">Héctor Chanampe</span>
           </p>
         </div>
       </div>
 
       {/* Pie legal + acceso secretaría */}
-      <div className="border-t border-stone-100 px-4 sm:px-6 py-4 max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-        <p className="text-xs text-stone-400">
-          © {new Date().getFullYear()} Ministerio Por una Vida Mejor — Sistema de gestión comunitaria
-        </p>
+      <div className="border-t border-stone-100">
+        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 px-4 py-4 sm:flex-row sm:px-6">
+          <p className="text-center text-xs text-stone-500 sm:text-left">
+            © {new Date().getFullYear()} Ministerio Por una Vida Mejor — Sistema de gestión comunitaria
+          </p>
 
-        <button
-          onClick={onAdminClick}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-stone-200 bg-stone-50 hover:bg-stone-100 text-stone-500 hover:text-stone-700 transition-all group min-w-[180px] justify-center sm:justify-start"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-4 h-4 shrink-0 group-hover:text-amber-600 transition-colors"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
-          <span className="text-sm font-medium">Acceso Secretaría</span>
-        </button>
+          <button type="button" onClick={onAdminClick} className="btn btn-secondary btn-sm">
+            <LockIcon className="h-4 w-4" />
+            Acceso Secretaría
+          </button>
+        </div>
       </div>
     </footer>
   )

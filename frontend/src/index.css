@@ -1,17 +1,212 @@
 @import "tailwindcss";
 
-/* Reset mínimo */
-*, *::before, *::after {
-  box-sizing: border-box;
+/* ─────────────────────────────────────────────────────────────────────────────
+   Sistema de diseño · Ministerio Por una Vida Mejor
+   Neutros cálidos (stone) + acento institucional (amber-700).
+   Éxito/ingresos: emerald · Error/egresos: rose · Información: sky.
+   Radios: tarjetas y modales rounded-2xl · botones, inputs y chips rounded-xl.
+   Texto secundario nunca más claro que stone-500 (contraste AA sobre blanco).
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+
+  --shadow-card: 0 1px 2px rgb(28 25 23 / 0.04), 0 1px 3px rgb(28 25 23 / 0.06);
+  --shadow-card-hover: 0 4px 6px -2px rgb(28 25 23 / 0.05), 0 12px 24px -6px rgb(28 25 23 / 0.12);
+  --shadow-overlay: 0 24px 48px -12px rgb(28 25 23 / 0.35);
+
+  --animate-fade-in: fade-in 0.2s ease-out both;
+  --animate-slide-up: slide-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-pop-in: pop-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pop-in {
+    from { opacity: 0; transform: scale(0.96) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
 }
 
-body {
-  margin: 0;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background-color: var(--color-stone-50);
+    color: var(--color-stone-800);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background-color: var(--color-amber-200);
+    color: var(--color-stone-900);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary,
+  select {
+    cursor: pointer;
+  }
+
+  /* Foco visible y consistente para teclado en cualquier control */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-amber-600);
+    outline-offset: 2px;
+  }
+
+  img,
+  svg {
+    max-width: 100%;
+  }
 }
 
-/* Scrollbar suave */
-html {
-  scroll-behavior: smooth;
+/* ── Componentes reutilizables ────────────────────────────────────────────── */
+@layer components {
+  /* Botones */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
+      transition duration-200 select-none active:scale-[0.98]
+      disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100;
+  }
+  .btn-sm {
+    @apply gap-1.5 px-3 py-1.5 text-xs;
+  }
+  .btn-lg {
+    @apply px-6 py-3;
+  }
+  .btn-primary {
+    @apply bg-amber-700 text-white shadow-sm hover:bg-amber-800 hover:shadow-md;
+  }
+  .btn-dark {
+    @apply bg-stone-900 text-white shadow-sm hover:bg-stone-800;
+  }
+  .btn-success {
+    @apply bg-emerald-700 text-white shadow-sm hover:bg-emerald-800;
+  }
+  .btn-secondary {
+    @apply border border-stone-300 bg-white text-stone-700 shadow-sm hover:border-stone-400 hover:bg-stone-50;
+  }
+  .btn-danger {
+    @apply border border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-300 hover:bg-rose-100;
+  }
+  .btn-ghost {
+    @apply text-stone-600 hover:bg-stone-100 hover:text-stone-900;
+  }
+
+  /* Formularios */
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-stone-700;
+  }
+  .input {
+    @apply w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-stone-800
+      placeholder:text-stone-400 transition duration-150
+      hover:border-stone-400
+      focus:border-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-600/25
+      disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-500;
+  }
+  .input-error {
+    @apply border-rose-400 bg-rose-50 hover:border-rose-400 focus:border-rose-500 focus:ring-rose-500/25;
+  }
+
+  /* Superficies */
+  .card {
+    @apply rounded-2xl border border-stone-200 bg-white shadow-card;
+  }
+  .card-hover {
+    @apply transition duration-200 hover:-translate-y-0.5 hover:shadow-card-hover;
+  }
+  .panel {
+    @apply rounded-2xl border border-stone-200 bg-stone-50;
+  }
+
+  /* Tipografía */
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-widest text-amber-700;
+  }
+  .page-title {
+    @apply font-display text-3xl font-bold tracking-tight text-stone-900 sm:text-4xl;
+  }
+  .section-title {
+    @apply text-lg font-bold tracking-tight text-stone-900;
+  }
+  .muted {
+    @apply text-sm text-stone-500;
+  }
+
+  /* Contenedores de página */
+  .page {
+    @apply mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 sm:py-12;
+  }
+
+  /* Avisos */
+  .alert {
+    @apply flex items-start gap-3 rounded-xl border px-4 py-3 text-sm font-medium;
+  }
+  .alert-success {
+    @apply border-emerald-200 bg-emerald-50 text-emerald-800;
+  }
+  .alert-error {
+    @apply border-rose-200 bg-rose-50 text-rose-800;
+  }
+  .alert-info {
+    @apply border-sky-200 bg-sky-50 text-sky-800;
+  }
+  .alert-warning {
+    @apply border-amber-200 bg-amber-50 text-amber-900;
+  }
+
+  /* Etiquetas */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold;
+  }
+
+  /* Pestañas segmentadas */
+  .segmented {
+    @apply flex gap-1 rounded-xl bg-stone-100 p-1;
+  }
+  .segmented-item {
+    @apply flex-1 rounded-lg px-3 py-2 text-center text-sm font-medium text-stone-600 transition duration-200
+      hover:bg-white/70 hover:text-stone-900;
+  }
+  .segmented-item[aria-selected="true"],
+  .segmented-item[aria-current="page"] {
+    @apply bg-white font-semibold text-amber-800 shadow-sm hover:bg-white;
+  }
+
+  /* Superposición de modales */
+  .overlay {
+    @apply fixed inset-0 z-50 flex animate-fade-in items-end justify-center bg-stone-950/55 backdrop-blur-sm sm:items-center sm:px-4;
+  }
+  .modal {
+    @apply w-full animate-slide-up overflow-hidden bg-white shadow-overlay sm:animate-pop-in;
+  }
+}
+
+/* Respeta la preferencia del usuario por menos movimiento */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

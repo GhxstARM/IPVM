@@ -1,21 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import {
-  type ServiceError,
-  getMensajeInicio,
-  guardarMensajeInicio,
-} from '../services/inicioService'
+import { getMensajeInicio, guardarMensajeInicio } from '../services/inicioService'
+import { extraerMensaje } from '../utils/errors'
+import { CheckCircleIcon, ExclamationIcon, InfoIcon } from './icons'
+import Spinner from './Spinner'
 
 // ── Tipos locales ─────────────────────────────────────────────────────────────
 type Notificacion = { tipo: 'exito' | 'error'; mensaje: string }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function esServiceError(err: unknown): err is ServiceError {
-  return typeof err === 'object' && err !== null && 'message' in err
-}
-
-function extraerMensaje(err: unknown, fallback: string): string {
-  return esServiceError(err) ? err.message : fallback
-}
 
 // ── Componente ────────────────────────────────────────────────────────────────
 export default function AdminInicio() {
@@ -63,7 +53,11 @@ export default function AdminInicio() {
   // ── Guardar ──────────────────────────────────────────────────────────────
   const handleGuardar = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!mensaje.trim() || !hayCambios) return
+    if (!mensaje.trim()) {
+      mostrarNotif('error', 'El mensaje pastoral no puede quedar vacío.')
+      return
+    }
+    if (!hayCambios) return
 
     setGuardando(true)
     try {
@@ -84,114 +78,112 @@ export default function AdminInicio() {
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
+    <div className="max-w-3xl space-y-6">
       <div>
-        <h3 className="text-xl font-bold text-stone-800">Mensaje Pastoral</h3>
-        <p className="text-sm text-stone-500 mt-1">
-          Edita las palabras del Pastor Principal (Héctor Chanampe) que se publican en la página de inicio.
+        <h3 className="section-title text-xl">Mensaje Pastoral</h3>
+        <p className="muted mt-1">
+          Edita las palabras del Pastor Principal (Héctor Chanampe) que se publican en la página de
+          inicio.
         </p>
       </div>
 
       {/* Notificación */}
       {notif && (
         <div
-          role="status"
+          role={notif.tipo === 'exito' ? 'status' : 'alert'}
           aria-live="polite"
-          className={`rounded-xl px-4 py-3 text-sm font-medium border ${
-            notif.tipo === 'exito'
-              ? 'bg-green-50 border-green-200 text-green-800'
-              : 'bg-red-50 border-red-200 text-red-800'
-          }`}
+          className={`alert animate-fade-in ${notif.tipo === 'exito' ? 'alert-success' : 'alert-error'}`}
         >
-          {notif.mensaje}
+          {notif.tipo === 'exito' ? (
+            <CheckCircleIcon className="h-5 w-5 shrink-0" />
+          ) : (
+            <ExclamationIcon className="h-5 w-5 shrink-0" />
+          )}
+          <span>{notif.mensaje}</span>
         </div>
       )}
 
-      <form onSubmit={handleGuardar} className="space-y-4" noValidate>
+      <form onSubmit={handleGuardar} className="space-y-5" noValidate>
         {/* Vista previa con formato pastoral */}
-        <div className="bg-stone-50 border border-stone-200 rounded-2xl p-5 space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-widest text-amber-700">
-            Vista previa — Pastor Héctor Chanampe
-          </p>
+        <div className="panel space-y-3 p-5 sm:p-6">
+          <p className="eyebrow">Vista previa — Pastor Héctor Chanampe</p>
           {cargando ? (
-            <div className="h-16 bg-stone-200 animate-pulse rounded-lg" />
+            <div className="space-y-2 py-1" aria-busy="true">
+              <div className="h-4 w-full animate-pulse rounded bg-stone-200" />
+              <div className="h-4 w-5/6 animate-pulse rounded bg-stone-200" />
+              <div className="h-4 w-2/3 animate-pulse rounded bg-stone-100" />
+            </div>
           ) : (
-            <p className="text-stone-700 text-sm leading-relaxed italic whitespace-pre-wrap min-h-[3rem]">
-              "{mensaje || 'El mensaje pastoral aparecerá aquí...'}"
-            </p>
+            <blockquote className="min-h-[3rem] border-l-2 border-amber-300 pl-4 text-sm leading-relaxed italic text-stone-700 whitespace-pre-wrap">
+              “{mensaje || 'El mensaje pastoral aparecerá aquí...'}”
+            </blockquote>
           )}
         </div>
 
-        {/* Textarea */}
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-stone-700" htmlFor="msg-inicio">
-            Texto del mensaje pastoral{' '}
-            <span className="text-red-500">*</span>
-          </label>
-          {cargando ? (
-            <div className="w-full h-32 bg-stone-100 animate-pulse rounded-lg" />
-          ) : (
-            <textarea
-              id="msg-inicio"
-              rows={5}
-              placeholder="Escribe aquí las palabras del Pastor Principal..."
-              value={mensaje}
-              onChange={(e) => setMensaje(e.target.value)}
-              disabled={guardando}
-              className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition resize-none leading-relaxed disabled:opacity-60"
-              required
-              maxLength={1000}
-            />
-          )}
-          <p className="text-xs text-stone-400 text-right">{mensaje.length} / 1000 caracteres</p>
-        </div>
-
-        {/* Indicador de cambios sin guardar */}
-        {hayCambios && !cargando && (
-          <p className="text-xs text-amber-700 font-medium" role="status">
-            Tienes cambios sin guardar
-          </p>
-        )}
-
-        {/* Acciones */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            type="submit"
-            disabled={guardando || !hayCambios || cargando}
-            className="flex-1 py-3 rounded-xl font-semibold text-white bg-amber-700 hover:bg-amber-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 shadow text-sm"
-          >
-            {guardando ? (
-              <>
-                <Spinner />
-                Guardando...
-              </>
+        {/* Editor */}
+        <div className="card space-y-4 p-6">
+          <div>
+            <label className="label" htmlFor="msg-inicio">
+              Texto del mensaje pastoral <span className="text-rose-600">*</span>
+            </label>
+            {cargando ? (
+              <div className="h-36 w-full animate-pulse rounded-xl bg-stone-100" />
             ) : (
-              'Guardar mensaje pastoral'
+              <textarea
+                id="msg-inicio"
+                rows={5}
+                placeholder="Escribe aquí las palabras del Pastor Principal..."
+                value={mensaje}
+                onChange={(e) => setMensaje(e.target.value)}
+                disabled={guardando}
+                className="input resize-none leading-relaxed"
+                required
+                maxLength={1000}
+              />
             )}
-          </button>
+            <div className="mt-1.5 flex items-center justify-between gap-2 text-xs">
+              {hayCambios && !cargando ? (
+                <span className="inline-flex items-center gap-1 font-medium text-amber-800" role="status">
+                  <InfoIcon className="h-3.5 w-3.5" />
+                  Tienes cambios sin guardar
+                </span>
+              ) : (
+                <span />
+              )}
+              <span className="tabular-nums text-stone-500">{mensaje.length} / 1000 caracteres</span>
+            </div>
+          </div>
 
-          {hayCambios && !cargando && (
+          {/* Acciones */}
+          <div className="flex flex-col gap-3 sm:flex-row">
             <button
-              type="button"
-              onClick={handleDescartar}
-              disabled={guardando}
-              className="px-5 py-3 rounded-xl border border-stone-300 text-stone-600 hover:bg-stone-100 text-sm font-medium transition-colors disabled:opacity-50"
+              type="submit"
+              disabled={guardando || !hayCambios || cargando}
+              className="btn btn-primary btn-lg flex-1"
             >
-              Descartar
+              {guardando ? (
+                <>
+                  <Spinner />
+                  Guardando...
+                </>
+              ) : (
+                'Guardar mensaje pastoral'
+              )}
             </button>
-          )}
+
+            {hayCambios && !cargando && (
+              <button
+                type="button"
+                onClick={handleDescartar}
+                disabled={guardando}
+                className="btn btn-secondary btn-lg"
+              >
+                Descartar
+              </button>
+            )}
+          </div>
         </div>
       </form>
     </div>
-  )
-}
-
-// ── Sub-componente reutilizable ───────────────────────────────────────────────
-function Spinner() {
-  return (
-    <svg className="animate-spin h-4 w-4 text-current" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-    </svg>
   )
 }

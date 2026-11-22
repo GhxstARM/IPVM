@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import AvisoDonacion from './components/AvisoDonacion.tsx'
 import DonarModal from './components/DonarModal.tsx'
 import Eventos from './components/Eventos.tsx'
 import Footer from './components/Footer.tsx'
@@ -7,20 +8,17 @@ import LoginModal from './components/LoginModal.tsx'
 import Navbar, { type Tab } from './components/Navbar.tsx'
 import SubidaBoletas from './components/SubidaBoletas.tsx'
 import Transparencia from './components/Transparencia.tsx'
-
-interface ResultadoDonacion {
-  estado: 'aprobada' | 'rechazada' | 'anulada' | 'error'
-  monto?: string
-  orden?: string
-}
+import { logoutSecretaria } from './services/secretariaService.ts'
+import { ESTADOS_DONACION, type ResultadoDonacion } from './types/donacion.ts'
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('inicio')
   const [modalDonar, setModalDonar] = useState(false)
   const [modalLogin, setModalLogin] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [secretariaToken, setSecretariaToken] = useState('')
   const [resultadoDonacion, setResultadoDonacion] = useState<ResultadoDonacion | null>(null)
+
+  const isAuthenticated = secretariaToken !== ''
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -34,7 +32,7 @@ export default function App() {
 
     // 2. Si viene de vuelta desde Transbank (?estado=...)
     const estado = params.get('estado') as ResultadoDonacion['estado'] | null
-    if (estado && ['aprobada', 'rechazada', 'anulada', 'error'].includes(estado)) {
+    if (estado && ESTADOS_DONACION.includes(estado)) {
       setResultadoDonacion({
         estado,
         monto: params.get('monto') || undefined,
@@ -44,31 +42,35 @@ export default function App() {
     }
   }, [])
 
+  // La vista de secretaría exige sesión: si no la hay, se solicita el login.
+  useEffect(() => {
+    if (activeTab === 'secretaria' && !isAuthenticated) setModalLogin(true)
+  }, [activeTab, isAuthenticated])
+
+  const cambiarTab = (tab: Tab) => {
+    setActiveTab(tab)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   // Abre el modal de login (o va directo si ya está autenticada)
   const handleAdminClick = () => {
     if (isAuthenticated) {
-      setActiveTab('secretaria')
+      cambiarTab('secretaria')
     } else {
       setModalLogin(true)
     }
   }
 
-  // Cuando la contraseña es correcta
   const handleLoginSuccess = (token: string) => {
     setSecretariaToken(token)
-    setIsAuthenticated(true)
     setModalLogin(false)
-    setActiveTab('secretaria')
+    cambiarTab('secretaria')
   }
 
-  // Cerrar sesión
   const handleLogout = () => {
-    if (secretariaToken) void fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/secretaria/logout`, {
-      method: 'POST', headers: { Authorization: `Bearer ${secretariaToken}` },
-    }).catch(() => undefined)
-    setIsAuthenticated(false)
+    if (secretariaToken) void logoutSecretaria(secretariaToken)
     setSecretariaToken('')
-    setActiveTab('inicio')
+    cambiarTab('inicio')
   }
 
   const renderView = () => {
@@ -80,70 +82,42 @@ export default function App() {
       case 'transparencia':
         return <Transparencia />
       case 'secretaria':
-        if (!isAuthenticated) {
-          setModalLogin(true)
-          return null
-        }
-        return <SubidaBoletas onLogout={handleLogout} token={secretariaToken} />
+        return isAuthenticated ? (
+          <SubidaBoletas onLogout={handleLogout} token={secretariaToken} />
+        ) : null
     }
   }
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-800 flex flex-col">
+      <a
+        href="#contenido-principal"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-amber-700 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg"
+      >
+        Saltar al contenido principal
+      </a>
+
       <Navbar
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={cambiarTab}
         onDonar={() => setModalDonar(true)}
+        sesionActiva={isAuthenticated}
       />
 
-      {/* Aviso de resultado tras volver de Webpay */}
       {resultadoDonacion && (
-        <div
-          className={`px-4 py-3 text-sm font-medium flex items-center justify-between gap-4 ${
-            resultadoDonacion.estado === 'aprobada'
-              ? 'bg-green-700 text-white'
-              : resultadoDonacion.estado === 'anulada'
-              ? 'bg-amber-600 text-white'
-              : 'bg-red-700 text-white'
-          }`}
-        >
-          <div className="max-w-4xl mx-auto flex-1 text-center">
-            {resultadoDonacion.estado === 'aprobada' && (
-              <>
-                ¡Gracias por tu donación! Aporte de{' '}
-                <strong>${Number(resultadoDonacion.monto || 0).toLocaleString('es-CL')}</strong> aprobado
-                {resultadoDonacion.orden ? ` (Orden: ${resultadoDonacion.orden})` : ''}.
-              </>
-            )}
-            {resultadoDonacion.estado === 'anulada' && 'La donación en Webpay fue anulada.'}
-            {resultadoDonacion.estado === 'rechazada' && 'El pago fue rechazado por el banco o la tarjeta.'}
-            {resultadoDonacion.estado === 'error' && 'Ocurrió un problema al verificar el pago con Webpay.'}
-          </div>
-          <button
-            onClick={() => setResultadoDonacion(null)}
-            className="text-white/80 hover:text-white font-bold px-2"
-            aria-label="Cerrar aviso"
-          >
-            ✕
-          </button>
-        </div>
+        <AvisoDonacion resultado={resultadoDonacion} onClose={() => setResultadoDonacion(null)} />
       )}
 
-      <main className="flex-1 pb-16">
+      <main id="contenido-principal" className="flex-1 pb-16">
         {renderView()}
       </main>
 
       <Footer onAdminClick={handleAdminClick} />
 
-      {/* Modal donación */}
       {modalDonar && <DonarModal onClose={() => setModalDonar(false)} />}
 
-      {/* Modal login secretaría */}
       {modalLogin && (
-        <LoginModal
-          onSuccess={handleLoginSuccess}
-          onClose={() => setModalLogin(false)}
-        />
+        <LoginModal onSuccess={handleLoginSuccess} onClose={() => setModalLogin(false)} />
       )}
     </div>
   )

@@ -1,5 +1,16 @@
 import { useEffect, useState } from 'react'
 import { type Evento, getEventos } from '../services/eventosService'
+import { CalendarIcon, ClockIcon, InfoIcon, MapPinIcon } from './icons'
+
+function formatearFechaEvento(fecha: string): string {
+  const d = new Date(`${fecha}T12:00:00`)
+  if (Number.isNaN(d.getTime())) return fecha
+  return d.toLocaleDateString('es-CL', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
+}
 
 export default function Eventos() {
   const [eventos, setEventos] = useState<Evento[]>([])
@@ -37,80 +48,94 @@ export default function Eventos() {
   })()
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-8">
-      <div className="space-y-1">
-        <h2 className="text-2xl sm:text-3xl font-bold text-stone-800">
-          Próximas Celebraciones
-        </h2>
-        <p className="text-stone-500 capitalize">{fechaDomingo}</p>
+    <div className="page animate-fade-in space-y-8">
+      <div className="space-y-2">
+        <p className="eyebrow">Agenda Comunitaria</p>
+        <h2 className="page-title">Próximas Celebraciones</h2>
+        <p className="flex items-center gap-2 text-sm capitalize text-stone-500">
+          <CalendarIcon className="h-4 w-4 text-amber-700" />
+          Próximo domingo: {fechaDomingo}
+        </p>
       </div>
 
       {cargando ? (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div
+          className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
+          aria-busy="true"
+          aria-label="Cargando celebraciones"
+        >
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="bg-white border border-stone-200 rounded-2xl h-64 animate-pulse"
-            />
+            <div key={i} className="card overflow-hidden animate-pulse">
+              <div className="h-1.5 w-full bg-stone-200" />
+              <div className="space-y-4 p-6">
+                <div className="h-5 w-24 rounded-full bg-stone-100" />
+                <div className="h-5 w-3/4 rounded-lg bg-stone-200" />
+                <div className="space-y-2">
+                  <div className="h-3.5 w-full rounded bg-stone-100" />
+                  <div className="h-3.5 w-5/6 rounded bg-stone-100" />
+                </div>
+                <div className="space-y-2 border-t border-stone-100 pt-4">
+                  <div className="h-3.5 w-2/3 rounded bg-stone-200" />
+                  <div className="h-3.5 w-1/3 rounded bg-stone-100" />
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       ) : eventos.length === 0 ? (
-        <div className="text-center py-12 bg-white border border-stone-200 rounded-2xl p-6">
-          <p className="text-stone-500 text-sm">No hay celebraciones programadas por el momento.</p>
+        <div className="card flex flex-col items-center gap-3 px-6 py-14 text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-stone-100 text-stone-500">
+            <CalendarIcon className="h-6 w-6" />
+          </span>
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-stone-800">Sin celebraciones programadas</h3>
+            <p className="text-sm text-stone-500">
+              No hay actividades registradas por el momento. Te esperamos cada domingo a las 10:00
+              hrs.
+            </p>
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {eventos.map((ev) => (
-            <article
-              key={ev.id}
-              className="bg-white border border-stone-200 rounded-2xl overflow-hidden hover:shadow-lg transition-shadow flex flex-col"
-            >
-              <div className="h-1.5 bg-amber-700 w-full" />
+            <article key={ev.id} className="card card-hover flex flex-col overflow-hidden">
+              <div className="h-1.5 w-full bg-amber-700" />
 
-              <div className="p-5 flex flex-col gap-3 flex-1">
+              <div className="flex flex-1 flex-col gap-3 p-6">
                 {ev.etiqueta && (
                   <span
-                    className={`self-start text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
-                      ev.color || 'bg-amber-100 text-amber-800 border-amber-200'
+                    className={`badge self-start ${
+                      ev.color || 'border-amber-200 bg-amber-50 text-amber-800'
                     }`}
                   >
                     {ev.etiqueta}
                   </span>
                 )}
 
-                <h3 className="text-base font-bold text-stone-800 leading-snug">
-                  {ev.titulo}
-                </h3>
+                <h3 className="text-lg font-bold leading-snug text-stone-900">{ev.titulo}</h3>
 
                 {ev.descripcion && (
-                  <p className="text-sm text-stone-500 leading-relaxed flex-1">
-                    {ev.descripcion}
-                  </p>
+                  <p className="flex-1 text-sm leading-relaxed text-stone-600">{ev.descripcion}</p>
                 )}
 
-                <div className="border-t border-stone-100 pt-3 space-y-1.5 text-xs text-stone-500">
+                <div className="mt-auto space-y-2 border-t border-stone-100 pt-4 text-xs text-stone-600">
                   {ev.fecha && (
                     <div className="flex items-center gap-2">
-                      <svg className="w-3.5 h-3.5 shrink-0 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                      </svg>
-                      <span className="font-semibold text-stone-700">
-                        {new Date(ev.fecha + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}
-                      </span>
+                      <CalendarIcon className="h-4 w-4 shrink-0 text-amber-700" />
+                      <time dateTime={ev.fecha} className="font-semibold capitalize text-stone-800">
+                        {formatearFechaEvento(ev.fecha)}
+                      </time>
                     </div>
                   )}
-                  <div className="flex items-center gap-2">
-                    <svg className="w-3.5 h-3.5 shrink-0 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="font-semibold text-stone-700">{ev.hora} hrs</span>
-                  </div>
+                  {ev.hora && (
+                    <div className="flex items-center gap-2">
+                      <ClockIcon className="h-4 w-4 shrink-0 text-stone-500" />
+                      <span className="font-semibold text-stone-800">{ev.hora} hrs</span>
+                    </div>
+                  )}
                   {ev.lugar && (
                     <div className="flex items-center gap-2">
-                      <svg className="w-3.5 h-3.5 shrink-0 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                      </svg>
+                      <MapPinIcon className="h-4 w-4 shrink-0 text-stone-500" />
                       <span>{ev.lugar}</span>
                     </div>
                   )}
@@ -121,9 +146,14 @@ export default function Eventos() {
         </div>
       )}
 
-      <div className="bg-stone-50 border border-stone-200 rounded-xl px-5 py-4 text-sm text-stone-500">
-        <strong className="text-stone-700">¿Deseas publicar una actividad?</strong>{' '}
-        Comunícate con la secretaría parroquial para que sea incluida en la agenda comunitaria.
+      <div className="panel flex items-start gap-3 px-5 py-4 text-sm text-stone-600">
+        <InfoIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
+        <p>
+          <strong className="font-semibold text-stone-800">
+            ¿Deseas publicar una actividad?
+          </strong>{' '}
+          Comunícate con la secretaría parroquial para que sea incluida en la agenda comunitaria.
+        </p>
       </div>
     </div>
   )

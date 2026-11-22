@@ -1,5 +1,9 @@
 import { useState } from 'react'
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+import { useModalDialog } from '../hooks/useModalDialog'
+import { loginSecretaria } from '../services/secretariaService'
+import { extraerMensaje } from '../utils/errors'
+import { ExclamationIcon, EyeIcon, EyeOffIcon, LockIcon, LoginIcon, XIcon } from './icons'
+import Spinner from './Spinner'
 
 interface LoginModalProps {
   onSuccess: (token: string) => void
@@ -12,68 +16,71 @@ export default function LoginModal({ onSuccess, onClose }: LoginModalProps) {
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
 
+  useModalDialog(onClose, cargando)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setCargando(true)
     setError('')
 
     try {
-      const response = await fetch(`${API_URL}/api/secretaria/login`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-      })
-      const data = await response.json()
-      if (!response.ok || !data.success) throw new Error(data.error || 'Contraseña incorrecta.')
-      onSuccess(data.token)
+      onSuccess(await loginSecretaria(password))
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo contactar al servidor.')
+      setError(extraerMensaje(e, 'No se pudo contactar al servidor.'))
       setPassword('')
-    } finally { setCargando(false) }
+    } finally {
+      setCargando(false)
+    }
   }
 
   return (
-    /* Overlay */
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-0 sm:px-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      className="overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !cargando) onClose()
+      }}
     >
-      <div className="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden">
-
-        {/* Header */}
-        <div className="bg-stone-800 px-6 py-5 flex items-center justify-between">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="login-modal-title"
+        className="modal rounded-t-3xl sm:max-w-sm sm:rounded-2xl"
+      >
+        {/* Encabezado */}
+        <div className="flex items-center justify-between bg-stone-900 px-6 py-5">
           <div className="flex items-center gap-3">
-            {/* Ícono candado */}
-            <div className="w-9 h-9 rounded-xl bg-stone-700 flex items-center justify-center shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-800 text-amber-400">
+              <LockIcon className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-stone-400 text-xs font-semibold uppercase tracking-widest leading-none mb-0.5">Panel Admin</p>
-              <h2 className="text-white font-bold text-base leading-none">Acceso Secretaría</h2>
+              <p className="mb-0.5 text-xs font-semibold uppercase tracking-widest leading-none text-stone-400">
+                Panel Admin
+              </p>
+              <h2 id="login-modal-title" className="text-base font-bold leading-none text-white">
+                Acceso Secretaría
+              </h2>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="text-stone-400 hover:text-white transition-colors p-2 -mr-1 rounded-lg hover:bg-stone-700"
-            aria-label="Cerrar"
+            disabled={cargando}
+            className="-mr-1 rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-800 hover:text-white disabled:opacity-50"
+            aria-label="Cerrar ventana de acceso"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <XIcon className="h-5 w-5" />
           </button>
         </div>
 
         {/* Formulario */}
-        <form onSubmit={handleSubmit} className="px-6 py-6 space-y-5">
-          <p className="text-sm text-stone-500">
+        <form onSubmit={handleSubmit} className="space-y-5 px-6 py-6">
+          <p className="text-sm leading-relaxed text-stone-600">
             Ingresa la contraseña para acceder al panel de secretaría del ministerio.
           </p>
 
           {/* Campo contraseña */}
-          <div className="space-y-1.5">
-            <label htmlFor="password" className="text-sm font-medium text-stone-700">
+          <div>
+            <label htmlFor="password" className="label">
               Contraseña
             </label>
             <div className="relative">
@@ -81,73 +88,59 @@ export default function LoginModal({ onSuccess, onClose }: LoginModalProps) {
                 id="password"
                 type={mostrar ? 'text' : 'password'}
                 value={password}
-                onChange={(e) => { setPassword(e.target.value); setError('') }}
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  setError('')
+                }}
                 placeholder="••••••••"
                 autoComplete="current-password"
                 autoFocus
-                className={`w-full border rounded-xl px-4 py-3 pr-12 text-sm text-stone-800 focus:outline-none focus:ring-2 transition ${
-                  error
-                    ? 'border-red-400 bg-red-50 focus:ring-red-400'
-                    : 'border-stone-300 bg-stone-50 focus:ring-amber-500 focus:border-transparent'
-                }`}
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? 'login-error' : undefined}
+                className={`input pr-12 ${error ? 'input-error' : ''}`}
                 required
               />
-              {/* Mostrar / ocultar */}
               <button
                 type="button"
                 onClick={() => setMostrar((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors p-1"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-700"
                 aria-label={mostrar ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               >
-                {mostrar ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88L6.59 6.59m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                )}
+                {mostrar ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
               </button>
             </div>
 
-            {/* Mensaje de error */}
             {error && (
-              <p className="flex items-center gap-1.5 text-sm text-red-600 font-medium mt-1">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                </svg>
+              <p
+                id="login-error"
+                role="alert"
+                className="mt-2 flex items-center gap-1.5 text-sm font-medium text-rose-700"
+              >
+                <ExclamationIcon className="h-4 w-4 shrink-0" />
                 {error}
               </p>
             )}
           </div>
 
-          {/* Botón ingresar */}
           <button
             type="submit"
             disabled={cargando || password.length === 0}
-            className="w-full py-3.5 rounded-xl font-semibold text-white bg-stone-800 hover:bg-stone-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 text-sm"
+            className="btn btn-dark w-full py-3"
           >
             {cargando ? (
               <>
-                <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                </svg>
+                <Spinner />
                 Verificando...
               </>
             ) : (
               <>
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                </svg>
+                <LoginIcon className="h-4 w-4" />
                 Ingresar
               </>
             )}
           </button>
 
-          <p className="text-center text-xs text-stone-400">
+          <p className="text-center text-xs text-stone-500">
             Acceso exclusivo para personal autorizado del ministerio.
           </p>
         </form>

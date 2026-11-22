@@ -1,27 +1,30 @@
 import { useEffect, useMemo, useState } from 'react'
-
-// En desarrollo: crea un .env con VITE_API_URL=http://TU_IP_LOCAL:3000 si pruebas desde el celular
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
-
-interface Gasto {
-  id: number | string
-  gasto: string
-  fecha: string // YYYY-MM-DD
-  razon: string
-  monto: number
-}
-
-interface Ingreso {
-  id?: number | string
-  fecha: string // YYYY-MM-DD
-  tipoIngreso?: string
-  descripcion: string
-  monto: number
-}
+import { API_URL } from '../config'
+import type { Gasto, Ingreso } from '../types/finanzas'
+import { formatCLP, formatFecha } from '../utils/format'
+import {
+  type IconoComponente,
+  PERIODO_TODOS,
+  aniosDisponibles,
+  iconoCategoria,
+  mesesDisponibles,
+  nombreMes,
+  nombrePeriodo,
+} from '../utils/periodos'
+import {
+  ArrowDownCircleIcon,
+  ArrowUpCircleIcon,
+  BanknotesIcon,
+  BuildingLibraryIcon,
+  ChartIcon,
+  ExclamationIcon,
+  RefreshIcon,
+} from './icons'
+import TransparenciaSkeleton from './TransparenciaSkeleton'
 
 interface GastoCategoria {
   categoria: string
-  icon: string
+  Icono: IconoComponente
   monto: number
   porcentaje: number
 }
@@ -33,85 +36,14 @@ interface Movimiento {
   monto: number
 }
 
-/** Formato CLP: $1.450.000 */
-function formatCLP(n: number) {
-  const abs = Math.abs(n)
-  const formatted = abs.toLocaleString('es-CL', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  })
-  return `${n < 0 ? '-' : ''}$${formatted}`
-}
-
-// Ícono según la categoría que viene de la hoja (si no hay coincidencia: 📌)
-const ICONOS: [string, string][] = [
-  ['acción social', '🤝'],
-  ['servicios básicos', '💡'],
-  ['aseo', '🧹'],
-  ['material litúrgico', '📖'],
-  ['gastos administrativos', '🗂️'],
-  ['alimentación', '🍽️'],
-  ['transporte', '🚌'],
-  ['salud', '🩺'],
-  ['hogar', '🏠'],
-  ['entretenimiento', '🎭'],
-  ['educación', '🎓'],
-  ['trabajo', '💼'],
-]
-
-const iconoCategoria = (cat: string) =>
-  ICONOS.find(([clave]) => cat.toLowerCase().startsWith(clave))?.[1] ?? '📌'
-
-// "2026-09" -> "Septiembre 2026"
-const nombreMes = (mes: string) => {
-  const [y, m] = mes.split('-').map(Number)
-  const texto = new Date(y ?? 0, (m ?? 1) - 1, 1)
-    .toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })
-    .replace(' de ', ' ')
-  return texto.charAt(0).toUpperCase() + texto.slice(1)
-}
-
-// "2026-09-29" -> "29 sept 2026"
-const formatFecha = (iso: string) => {
-  if (!iso) return 'Sin fecha'
-  const [y, m, d] = iso.split('-').map(Number)
-  return new Date(y ?? 0, (m ?? 1) - 1, d ?? 1).toLocaleDateString('es-CL', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
-}
-
-// Períodos: 'todos' (todo el tiempo), 'YYYY' (año) o 'YYYY-MM' (mes)
-const PERIODO_TODOS = 'todos'
-
-const nombrePeriodo = (periodo: string) => {
-  if (!periodo) return 'sin datos'
-  if (periodo === PERIODO_TODOS) return 'Todo el tiempo'
-  if (/^\d{4}$/.test(periodo)) return `Año ${periodo}`
-  return nombreMes(periodo)
-}
-
-const aniosDisponibles = (meses: string[]) =>
-  Array.from(new Set(meses.map((m) => m.slice(0, 4)))).sort().reverse()
-
-const mesesDisponibles = (gastos: Gasto[], ingresos: Ingreso[]) =>
-  Array.from(
-    new Set(
-      [...gastos, ...ingresos]
-        .map((x) => (x.fecha ?? '').slice(0, 7))
-        .filter((m) => /^\d{4}-\d{2}$/.test(m))
-    )
-  )
-    .sort()
-    .reverse()
+type TipoFiltro = 'periodo' | 'dia' | 'rango'
 
 export default function Transparencia() {
   const [datos, setDatos] = useState<{ gastos: Gasto[]; ingresos: Ingreso[] } | null>(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [mes, setMes] = useState('')
-  const [tipoFiltro, setTipoFiltro] = useState('periodo')
+  const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>('periodo')
   const [dia, setDia] = useState('')
   const [desde, setDesde] = useState('')
   const [hasta, setHasta] = useState('')
@@ -137,10 +69,9 @@ export default function Transparencia() {
       setMes((actual) =>
         actual === PERIODO_TODOS || meses.includes(actual) || anios.includes(actual)
           ? actual
-          : meses[0] ?? ''
+          : (meses[0] ?? ''),
       )
-    } catch (e) {
-      console.error('Error cargando transparencia:', e)
+    } catch {
       setError('No se pudieron cargar los datos. Intenta nuevamente en unos minutos.')
     } finally {
       setCargando(false)
@@ -153,16 +84,21 @@ export default function Transparencia() {
 
   const meses = useMemo(
     () => (datos ? mesesDisponibles(datos.gastos, datos.ingresos) : []),
-    [datos]
+    [datos],
   )
 
   const anios = useMemo(() => aniosDisponibles(meses), [meses])
   const rangoInvalido = Boolean(desde && hasta && desde > hasta)
-  const periodoVisible = tipoFiltro === 'dia'
-    ? (dia ? formatFecha(dia) : 'Selecciona un día')
-    : tipoFiltro === 'rango'
-      ? (rangoInvalido ? 'Rango inválido' : `${desde ? formatFecha(desde) : 'Sin límite inicial'} – ${hasta ? formatFecha(hasta) : 'Sin límite final'}`)
-      : nombrePeriodo(mes)
+  const periodoVisible =
+    tipoFiltro === 'dia'
+      ? dia
+        ? formatFecha(dia)
+        : 'Selecciona un día'
+      : tipoFiltro === 'rango'
+        ? rangoInvalido
+          ? 'Rango inválido'
+          : `${desde ? formatFecha(desde) : 'Sin límite inicial'} – ${hasta ? formatFecha(hasta) : 'Sin límite final'}`
+        : nombrePeriodo(mes)
 
   // Todos los cálculos se hacen aquí con las filas de la hoja
   const resumen = useMemo(() => {
@@ -174,8 +110,12 @@ export default function Transparencia() {
       const fechaDia = (fecha ?? '').slice(0, 10)
       if (tipoFiltro === 'dia') return Boolean(dia) && fechaDia === dia
       if (tipoFiltro === 'rango') {
-        return !rangoInvalido && /^\d{4}-\d{2}-\d{2}$/.test(fechaDia)
-          && (!desde || fechaDia >= desde) && (!hasta || fechaDia <= hasta)
+        return (
+          !rangoInvalido &&
+          /^\d{4}-\d{2}-\d{2}$/.test(fechaDia) &&
+          (!desde || fechaDia >= desde) &&
+          (!hasta || fechaDia <= hasta)
+        )
       }
       return (fecha ?? '').startsWith(prefijo)
     }
@@ -193,7 +133,7 @@ export default function Transparencia() {
     const categorias: GastoCategoria[] = Array.from(porCategoria.entries())
       .map(([categoria, monto]) => ({
         categoria,
-        icon: iconoCategoria(categoria),
+        Icono: iconoCategoria(categoria),
         monto,
         porcentaje: totalGastado > 0 ? Math.round((monto / totalGastado) * 100) : 0,
       }))
@@ -226,74 +166,25 @@ export default function Transparencia() {
     }
   }, [datos, mes, tipoFiltro, dia, desde, hasta, rangoInvalido])
 
-  if (cargando && !datos) {
-    return (
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-8 animate-pulse">
-        {/* Encabezado */}
-        <div className="space-y-2">
-          <div className="h-8 w-64 bg-stone-200 rounded-xl" />
-          <div className="h-4 w-48 bg-stone-100 rounded-lg" />
-        </div>
-
-        {/* Tarjetas de métricas */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="border border-stone-200 rounded-2xl p-5 space-y-3 bg-stone-50">
-              <div className="h-4 w-32 bg-stone-200 rounded" />
-              <div className="h-8 w-40 bg-stone-300 rounded-lg" />
-              <div className="h-3 w-28 bg-stone-100 rounded" />
-            </div>
-          ))}
-        </div>
-
-        {/* Desglose por categoría */}
-        <div className="bg-white border border-stone-200 rounded-2xl p-6 space-y-5">
-          <div className="h-5 w-52 bg-stone-200 rounded" />
-          <ul className="space-y-4">
-            {[1, 2, 3, 4].map((i) => (
-              <li key={i} className="space-y-1.5">
-                <div className="flex justify-between">
-                  <div className="h-4 w-32 bg-stone-200 rounded" />
-                  <div className="h-4 w-20 bg-stone-200 rounded" />
-                </div>
-                <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-stone-200 rounded-full" style={{ width: `${25 * i}%` }} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Últimos movimientos */}
-        <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-stone-100">
-            <div className="h-5 w-44 bg-stone-200 rounded" />
-          </div>
-          <ul className="divide-y divide-stone-100">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <li key={i} className="flex items-center justify-between px-6 py-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-stone-200 shrink-0" />
-                  <div className="space-y-1.5">
-                    <div className="h-3.5 w-40 bg-stone-200 rounded" />
-                    <div className="h-3 w-24 bg-stone-100 rounded" />
-                  </div>
-                </div>
-                <div className="h-4 w-20 bg-stone-200 rounded" />
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    )
-  }
+  if (cargando && !datos) return <TransparenciaSkeleton />
 
   if (error && !datos) {
     return (
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-3">
-        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-5">
-          <p className="text-sm text-rose-700">{error}</p>
-          <button onClick={() => void cargar()} className="mt-2 text-xs text-rose-600 underline">
+      <div className="page animate-fade-in">
+        <div role="alert" className="alert alert-error flex-col sm:flex-row sm:items-center">
+          <div className="flex flex-1 items-start gap-3">
+            <ExclamationIcon className="mt-0.5 h-5 w-5 shrink-0" />
+            <div>
+              <p className="font-semibold">No se pudo cargar la rendición de cuentas</p>
+              <p className="mt-0.5 font-normal text-rose-700">{error}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => void cargar()}
+            className="btn btn-danger btn-sm self-start sm:self-auto"
+          >
+            <RefreshIcon className="h-3.5 w-3.5" />
             Reintentar
           </button>
         </div>
@@ -305,178 +196,238 @@ export default function Transparencia() {
 
   const { totalGastado, totalRecaudado, saldo, categorias, movimientos, hayIngresos } = resumen
 
-  return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-8">
-      <div className="flex items-end justify-between flex-wrap gap-3">
-        <div className="space-y-1">
-          <h2 className="text-2xl sm:text-3xl font-bold text-stone-800">
-            📊 Rendición de Cuentas
-          </h2>
-          <p className="text-stone-500 text-sm">
-            Período: {periodoVisible} · Montos en Pesos Chilenos (CLP)
-          </p>
-        </div>
+  const limpiarFiltros = () => {
+    setTipoFiltro('periodo')
+    setMes(PERIODO_TODOS)
+    setDia('')
+    setDesde('')
+    setHasta('')
+  }
 
-        {meses.length > 0 && (
+  const metricas = [
+    {
+      label: 'Total Recaudado',
+      value: hayIngresos ? formatCLP(totalRecaudado) : '—',
+      Icono: BanknotesIcon,
+      sub: hayIngresos ? 'Colectas, ofrendas y donaciones' : 'Sin ingresos registrados en el período',
+      cardClass: 'border-emerald-200/80 bg-emerald-50/70',
+      iconClass: 'bg-emerald-100 text-emerald-700',
+      valueColor: 'text-emerald-800',
+    },
+    {
+      label: 'Total Gastado',
+      value: formatCLP(totalGastado),
+      Icono: ArrowDownCircleIcon,
+      sub: 'Todos los egresos del período',
+      cardClass: 'border-rose-200/80 bg-rose-50/70',
+      iconClass: 'bg-rose-100 text-rose-700',
+      valueColor: 'text-rose-800',
+    },
+    {
+      label: 'Saldo Disponible',
+      value: hayIngresos ? formatCLP(saldo) : '—',
+      Icono: BuildingLibraryIcon,
+      sub: 'Reserva para el próximo período',
+      cardClass: 'border-sky-200/80 bg-sky-50/70',
+      iconClass: 'bg-sky-100 text-sky-700',
+      valueColor: 'text-sky-800',
+    },
+  ]
+
+  return (
+    <div className="page animate-fade-in space-y-8">
+      {/* Encabezado */}
+      <div className="space-y-2">
+        <p className="eyebrow">Transparencia Financiera</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
+            <ChartIcon className="h-5 w-5" />
+          </span>
+          <h2 className="page-title">Rendición de Cuentas</h2>
+        </div>
+        <p className="muted">
+          Período: <strong className="font-semibold text-stone-700">{periodoVisible}</strong> ·
+          Montos en Pesos Chilenos (CLP)
+        </p>
+      </div>
+
+      {/* Barra de filtros */}
+      {meses.length > 0 && (
+        <div className="card p-4 sm:p-5">
           <div className="flex flex-wrap items-end gap-3">
-            <label className="flex flex-col gap-1 text-sm text-stone-700">
-              Filtrar por
+            <div className="min-w-[150px] flex-1 sm:flex-none">
+              <label htmlFor="filtro-tipo" className="label">
+                Filtrar por
+              </label>
               <select
+                id="filtro-tipo"
                 value={tipoFiltro}
-                onChange={(e) => setTipoFiltro(e.target.value)}
-                className="border border-stone-300 bg-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500"
+                onChange={(e) => setTipoFiltro(e.target.value as TipoFiltro)}
+                className="input"
               >
                 <option value="periodo">Período</option>
                 <option value="dia">Por día</option>
                 <option value="rango">Rango de fechas</option>
               </select>
-            </label>
+            </div>
+
             {tipoFiltro === 'periodo' && (
-            <label className="flex flex-col gap-1 text-sm text-stone-700">
-              Período
-          <select
-            value={mes}
-            onChange={(e) => setMes(e.target.value)}
-            className="border border-stone-300 bg-white rounded-lg px-3 py-2 text-sm text-stone-700 focus:ring-2 focus:ring-amber-500"
-            aria-label="Período"
-          >
-            <option value={PERIODO_TODOS}>Todo el tiempo</option>
-            <optgroup label="Por año">
-              {anios.map((a) => (
-                <option key={a} value={a}>
-                  Año {a}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Por mes">
-              {meses.map((m) => (
-                <option key={m} value={m}>
-                  {nombreMes(m)}
-                </option>
-              ))}
-            </optgroup>
-          </select>
-            </label>
+              <div className="min-w-[200px] flex-1 sm:flex-none">
+                <label htmlFor="filtro-periodo" className="label">
+                  Período
+                </label>
+                <select
+                  id="filtro-periodo"
+                  value={mes}
+                  onChange={(e) => setMes(e.target.value)}
+                  className="input"
+                >
+                  <option value={PERIODO_TODOS}>Todo el tiempo</option>
+                  <optgroup label="Por año">
+                    {anios.map((a) => (
+                      <option key={a} value={a}>
+                        Año {a}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Por mes">
+                    {meses.map((m) => (
+                      <option key={m} value={m}>
+                        {nombreMes(m)}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+              </div>
             )}
+
             {tipoFiltro === 'dia' && (
-              <label className="flex flex-col gap-1 text-sm text-stone-700">
-                Día
+              <div className="min-w-[180px] flex-1 sm:flex-none">
+                <label htmlFor="filtro-dia" className="label">
+                  Día
+                </label>
                 <input
+                  id="filtro-dia"
                   type="date"
                   value={dia}
                   onChange={(e) => setDia(e.target.value)}
                   onClick={(e) => e.currentTarget.showPicker?.()}
-                  className="border border-stone-300 bg-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500"
+                  className="input"
                 />
-              </label>
+              </div>
             )}
+
             {tipoFiltro === 'rango' && (
               <>
-                <label className="flex flex-col gap-1 text-sm text-stone-700">
-                  Desde
-                  <input type="date" value={desde} max={hasta || undefined}
+                <div className="min-w-[160px] flex-1 sm:flex-none">
+                  <label htmlFor="filtro-desde" className="label">
+                    Desde
+                  </label>
+                  <input
+                    id="filtro-desde"
+                    type="date"
+                    value={desde}
+                    max={hasta || undefined}
                     onChange={(e) => setDesde(e.target.value)}
                     onClick={(e) => e.currentTarget.showPicker?.()}
-                    aria-invalid={rangoInvalido} aria-describedby={rangoInvalido ? 'error-rango' : undefined}
-                    className="border border-stone-300 bg-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500" />
-                </label>
-                <label className="flex flex-col gap-1 text-sm text-stone-700">
-                  Hasta
-                  <input type="date" value={hasta} min={desde || undefined}
+                    aria-invalid={rangoInvalido}
+                    aria-describedby={rangoInvalido ? 'error-rango' : undefined}
+                    className={`input ${rangoInvalido ? 'input-error' : ''}`}
+                  />
+                </div>
+                <div className="min-w-[160px] flex-1 sm:flex-none">
+                  <label htmlFor="filtro-hasta" className="label">
+                    Hasta
+                  </label>
+                  <input
+                    id="filtro-hasta"
+                    type="date"
+                    value={hasta}
+                    min={desde || undefined}
                     onChange={(e) => setHasta(e.target.value)}
                     onClick={(e) => e.currentTarget.showPicker?.()}
-                    aria-invalid={rangoInvalido} aria-describedby={rangoInvalido ? 'error-rango' : undefined}
-                    className="border border-stone-300 bg-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500" />
-                </label>
+                    aria-invalid={rangoInvalido}
+                    aria-describedby={rangoInvalido ? 'error-rango' : undefined}
+                    className={`input ${rangoInvalido ? 'input-error' : ''}`}
+                  />
+                </div>
               </>
             )}
+
             {tipoFiltro !== 'periodo' && (
-              <button type="button" onClick={() => {
-                setTipoFiltro('periodo')
-                setMes(PERIODO_TODOS)
-                setDia('')
-                setDesde('')
-                setHasta('')
-              }} className="px-3 py-2 text-sm text-amber-800 underline rounded-lg focus:ring-2 focus:ring-amber-500">
+              <button type="button" onClick={limpiarFiltros} className="btn btn-ghost text-amber-800">
                 Limpiar filtro
               </button>
             )}
           </div>
-        )}
-      </div>
 
-      {tipoFiltro === 'rango' && rangoInvalido && (
-        <p id="error-rango" role="alert" className="text-sm text-rose-700">
-          La fecha inicial debe ser anterior o igual a la fecha final.
-        </p>
+          {tipoFiltro === 'rango' && rangoInvalido && (
+            <p
+              id="error-rango"
+              role="alert"
+              className="mt-3 flex items-center gap-1.5 text-sm font-medium text-rose-700"
+            >
+              <ExclamationIcon className="h-4 w-4 shrink-0" />
+              La fecha inicial debe ser anterior o igual a la fecha final.
+            </p>
+          )}
+        </div>
       )}
 
       {meses.length === 0 && (
-        <div className="bg-stone-100 border border-stone-200 rounded-2xl p-5 text-sm text-stone-500">
-          Aún no hay movimientos registrados.
+        <div className="panel flex items-center gap-3 p-5 text-sm text-stone-600">
+          <ChartIcon className="h-5 w-5 shrink-0 text-stone-500" />
+          <span>Aún no hay movimientos registrados.</span>
         </div>
       )}
 
       {/* Métricas clave */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          {
-            label: 'Total Recaudado',
-            value: hayIngresos ? formatCLP(totalRecaudado) : '—',
-            icon: '💰',
-            sub: hayIngresos ? 'Colectas + ofrendas y donaciones' : 'Sin ingresos registrados en el período',
-            color: 'bg-green-50 border-green-200',
-            valueColor: 'text-green-700',
-          },
-          {
-            label: 'Total Gastado',
-            value: formatCLP(totalGastado),
-            icon: '📤',
-            sub: 'Todos los egresos del período',
-            color: 'bg-rose-50 border-rose-200',
-            valueColor: 'text-rose-700',
-          },
-          {
-            label: 'Saldo Disponible',
-            value: hayIngresos ? formatCLP(saldo) : '—',
-            icon: '🏦',
-            sub: 'Reserva para el próximo período',
-            color: 'bg-sky-50 border-sky-200',
-            valueColor: 'text-sky-700',
-          },
-        ].map(({ label, value, icon, sub, color, valueColor }) => (
-          <div key={label} className={`border rounded-2xl p-5 space-y-1 ${color}`}>
-            <p className="text-sm font-medium text-stone-500 flex items-center gap-2">
-              <span className="text-xl">{icon}</span>
-              {label}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {metricas.map(({ label, value, Icono, sub, cardClass, iconClass, valueColor }) => (
+          <div key={label} className={`rounded-2xl border p-5 shadow-card ${cardClass}`}>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-stone-700">{label}</p>
+              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${iconClass}`}>
+                <Icono className="h-5 w-5" />
+              </span>
+            </div>
+            <p className={`mt-3 text-2xl font-bold tracking-tight tabular-nums sm:text-3xl ${valueColor}`}>
+              {value}
             </p>
-            <p className={`text-2xl font-bold ${valueColor}`}>{value}</p>
-            <p className="text-xs text-stone-400">{sub}</p>
+            <p className="mt-1.5 text-xs text-stone-600">{sub}</p>
           </div>
         ))}
       </div>
 
       {/* Desglose de gastos */}
-      <section className="bg-white border border-stone-200 rounded-2xl p-6 space-y-5">
-        <h3 className="font-bold text-stone-800 text-lg">Desglose de Gastos por Categoría</h3>
+      <section className="card space-y-5 p-6">
+        <h3 className="section-title">Desglose de Gastos por Categoría</h3>
         {categorias.length === 0 ? (
-          <p className="text-sm text-stone-400">No hay gastos registrados en este período.</p>
+          <div className="flex flex-col items-center gap-2 py-8 text-center">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-stone-100 text-stone-500">
+              <ChartIcon className="h-5 w-5" />
+            </span>
+            <p className="text-sm text-stone-500">No hay gastos registrados en este período.</p>
+          </div>
         ) : (
           <ul className="space-y-4">
-            {categorias.map(({ categoria, icon, monto, porcentaje }) => (
-              <li key={categoria} className="space-y-1.5">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-stone-700 font-medium">
-                    {icon} {categoria}
+            {categorias.map(({ categoria, Icono, monto, porcentaje }) => (
+              <li key={categoria} className="space-y-2">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="flex min-w-0 items-center gap-2.5 font-medium text-stone-800">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
+                      <Icono className="h-4 w-4" />
+                    </span>
+                    <span className="truncate">{categoria}</span>
                   </span>
-                  <span className="font-semibold text-stone-800">
+                  <span className="shrink-0 font-semibold tabular-nums text-stone-900">
                     {formatCLP(monto)}
-                    <span className="text-stone-400 font-normal ml-1.5">({porcentaje}%)</span>
+                    <span className="ml-1.5 font-normal text-stone-500">({porcentaje}%)</span>
                   </span>
                 </div>
-                <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
+                <div className="h-2 overflow-hidden rounded-full bg-stone-100">
                   <div
-                    className="h-full bg-amber-600 rounded-full transition-all"
+                    className="h-full rounded-full bg-amber-600 transition-all duration-500"
                     style={{ width: `${porcentaje}%` }}
                   />
                 </div>
@@ -487,47 +438,84 @@ export default function Transparencia() {
       </section>
 
       {/* Últimas transacciones */}
-      <section className="bg-white border border-stone-200 rounded-2xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-stone-100">
-          <h3 className="font-bold text-stone-800 text-lg">Últimos Movimientos</h3>
+      <section className="card overflow-hidden">
+        <div className="border-b border-stone-100 px-6 py-4">
+          <h3 className="section-title">Últimos Movimientos</h3>
         </div>
         {movimientos.length === 0 ? (
-          <p className="px-6 py-4 text-sm text-stone-400">No hay movimientos en este período.</p>
+          <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-stone-100 text-stone-500">
+              <BanknotesIcon className="h-5 w-5" />
+            </span>
+            <p className="text-sm text-stone-500">No hay movimientos en este período.</p>
+          </div>
         ) : (
           <ul className="divide-y divide-stone-100">
-            {movimientos.map(({ fecha, desc, tipo, monto }, i) => (
-              <li
-                key={`${tipo}-${fecha}-${desc}-${i}`}
-                className="flex items-center justify-between px-6 py-3 hover:bg-stone-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-lg">{tipo === 'ingreso' ? '🟢' : '🔴'}</span>
-                  <div>
-                    <p className="text-sm font-medium text-stone-700">{desc || 'Sin descripción'}</p>
-                    <p className="text-xs text-stone-400">{formatFecha(fecha)}</p>
+            {movimientos.map(({ fecha, desc, tipo, monto }, i) => {
+              const esIngreso = tipo === 'ingreso'
+              return (
+                <li
+                  key={`${tipo}-${fecha}-${desc}-${i}`}
+                  className="flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-stone-50 sm:px-6"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                        esIngreso
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : 'bg-rose-50 text-rose-700'
+                      }`}
+                    >
+                      {esIngreso ? (
+                        <ArrowUpCircleIcon className="h-5 w-5" />
+                      ) : (
+                        <ArrowDownCircleIcon className="h-5 w-5" />
+                      )}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-stone-800">
+                        {desc || 'Sin descripción'}
+                      </p>
+                      <p className="text-xs text-stone-500">{formatFecha(fecha)}</p>
+                    </div>
                   </div>
-                </div>
-                <span className={`text-sm font-bold ${monto > 0 ? 'text-green-600' : 'text-rose-600'}`}>
-                  {monto > 0 ? '+' : ''}
-                  {formatCLP(monto)}
-                </span>
-              </li>
-            ))}
+                  <span
+                    className={`shrink-0 text-sm font-bold tabular-nums ${
+                      monto > 0 ? 'text-emerald-700' : 'text-rose-700'
+                    }`}
+                  >
+                    {monto > 0 ? '+' : ''}
+                    {formatCLP(monto)}
+                  </span>
+                </li>
+              )
+            })}
           </ul>
         )}
       </section>
 
-      <p className="text-xs text-stone-400 text-center">
-        Los antecedentes son registrados y procesados por la secretaría parroquial.
-        {consultadoEn &&
-          ` Última consulta: ${consultadoEn.toLocaleString('es-CL', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}`}
-      </p>
+      <div className="flex flex-col items-center justify-center gap-2 text-center text-xs text-stone-500 sm:flex-row sm:gap-4">
+        <p>
+          Los antecedentes son registrados y procesados por la secretaría parroquial.
+          {consultadoEn &&
+            ` Última consulta: ${consultadoEn.toLocaleString('es-CL', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}`}
+        </p>
+        <button
+          type="button"
+          onClick={() => void cargar()}
+          disabled={cargando}
+          className="inline-flex items-center gap-1 font-semibold text-amber-800 transition-colors hover:text-amber-900 disabled:opacity-50"
+        >
+          <RefreshIcon className={`h-3.5 w-3.5 ${cargando ? 'animate-spin' : ''}`} />
+          Actualizar
+        </button>
+      </div>
     </div>
   )
 }
