@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CrossIcon, HeartIcon, LockIcon, MenuIcon, XIcon } from './icons'
+import { HeartIcon, LockIcon, MenuIcon, PvmLogo, XIcon } from './icons'
 
 type Tab = 'inicio' | 'eventos' | 'transparencia' | 'secretaria'
 
@@ -17,10 +17,17 @@ const TABS_PUBLICOS: { id: Tab; label: string }[] = [
   { id: 'transparencia', label: 'Transparencia' },
 ]
 
-export default function Navbar({ activeTab, onTabChange, onDonar, sesionActiva = false }: NavbarProps) {
+export default function Navbar({
+  activeTab,
+  onTabChange,
+  onDonar,
+  sesionActiva = false,
+}: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false)
 
-  const tabs = sesionActiva ? [...TABS_PUBLICOS, { id: 'secretaria' as const, label: 'Secretaría' }] : TABS_PUBLICOS
+  const tabs = sesionActiva
+    ? [...TABS_PUBLICOS, { id: 'secretaria' as const, label: 'Secretaría' }]
+    : TABS_PUBLICOS
 
   const irA = (tab: Tab) => {
     onTabChange(tab)
@@ -28,23 +35,29 @@ export default function Navbar({ activeTab, onTabChange, onDonar, sesionActiva =
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-stone-200/80 bg-white/90 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/95 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
-        {/* Logo + nombre */}
+        {/* Logo oficial PVM + nombre */}
         <button
           type="button"
           onClick={() => irA('inicio')}
           className="group flex items-center gap-3 rounded-xl text-left"
           aria-label="Ir al inicio"
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-700 text-white shadow-sm transition duration-200 group-hover:bg-amber-800 group-hover:shadow-md">
-            <CrossIcon />
-          </span>
+          <PvmLogo
+            size="md"
+            className="transition-transform duration-200 group-hover:scale-105"
+          />
           <span className="leading-tight">
-            <span className="hidden text-[10px] font-semibold uppercase tracking-widest text-stone-500 sm:block">
-              Ministerio
+            <span className="block text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">
+              Iglesia de Dios
             </span>
-            <span className="block text-sm font-bold text-stone-900 sm:text-base">Por una Vida Mejor</span>
+            <span className="flex items-baseline gap-1.5">
+              <span className="text-base font-black tracking-tight text-zinc-950">PVM</span>
+              <span className="hidden text-xs font-medium text-zinc-500 sm:inline">
+                Por una vida mejor
+              </span>
+            </span>
           </span>
         </button>
 
@@ -88,7 +101,7 @@ export default function Navbar({ activeTab, onTabChange, onDonar, sesionActiva =
         <nav
           id="menu-movil"
           aria-label="Principal"
-          className="animate-fade-in space-y-1 border-t border-stone-100 bg-white px-4 pb-4 pt-3 sm:hidden"
+          className="animate-fade-in space-y-1 border-t border-zinc-200 bg-white px-4 pb-4 pt-3 sm:hidden"
         >
           {tabs.map(({ id, label }) => (
             <button
@@ -98,8 +111,8 @@ export default function Navbar({ activeTab, onTabChange, onDonar, sesionActiva =
               aria-current={activeTab === id ? 'page' : undefined}
               className={`flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left text-sm font-medium transition-colors ${
                 activeTab === id
-                  ? 'bg-amber-50 font-semibold text-amber-800'
-                  : 'text-stone-700 hover:bg-stone-50'
+                  ? 'bg-zinc-950 font-semibold text-white'
+                  : 'text-zinc-700 hover:bg-zinc-100'
               }`}
             >
               {id === 'secretaria' && <LockIcon className="h-4 w-4" />}

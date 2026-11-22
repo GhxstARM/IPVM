@@ -421,29 +421,29 @@ export default function AdminFinanzas({ token }: { token: string }) {
       {/* Listado de registros */}
       {cargando ? (
         <div className="card overflow-hidden animate-pulse" aria-busy="true" aria-label="Cargando registros">
-          <div className="border-b border-stone-100 bg-stone-50 px-5 py-3.5">
-            <div className="h-3.5 w-48 rounded bg-stone-200" />
+          <div className="border-b border-zinc-100 bg-zinc-50 px-5 py-3.5">
+            <div className="h-3.5 w-48 rounded bg-zinc-200" />
           </div>
-          <ul className="divide-y divide-stone-100">
+          <ul className="divide-y divide-zinc-100">
             {[1, 2, 3, 4].map((i) => (
               <li key={i} className="flex items-center justify-between gap-4 px-5 py-4">
                 <div className="space-y-2">
-                  <div className="h-4 w-56 rounded bg-stone-200" />
-                  <div className="h-3 w-32 rounded bg-stone-100" />
+                  <div className="h-4 w-56 rounded bg-zinc-200" />
+                  <div className="h-3 w-32 rounded bg-zinc-100" />
                 </div>
-                <div className="h-4 w-24 rounded bg-stone-200" />
+                <div className="h-4 w-24 rounded bg-zinc-200" />
               </li>
             ))}
           </ul>
         </div>
       ) : registros.length === 0 ? (
         <div className="card flex flex-col items-center gap-3 px-6 py-12 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-stone-100 text-stone-500">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-950 text-white">
             <BanknotesIcon className="h-6 w-6" />
           </span>
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-stone-700">No hay {tipo} registrados.</p>
-            <p className="text-xs text-stone-500">
+            <p className="text-sm font-semibold text-zinc-800">No hay {tipo} registrados.</p>
+            <p className="text-xs text-zinc-500">
               Agrega un nuevo registro con el botón superior para comenzar.
             </p>
           </div>
@@ -467,36 +467,32 @@ export default function AdminFinanzas({ token }: { token: string }) {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="badge border-stone-200 bg-stone-100 text-stone-700">
+                        <span className="badge border-zinc-300 bg-zinc-100 text-zinc-800">
                           {etiqueta}
                         </span>
-                        <span className="text-xs text-stone-500">#{r.id}</span>
+                        <span className="text-xs text-zinc-500">#{r.id}</span>
                       </div>
-                      <p className="text-sm font-semibold text-stone-900">{tituloDetalle}</p>
+                      <p className="text-sm font-semibold text-zinc-950">{tituloDetalle}</p>
                     </div>
-                    <span
-                      className={`shrink-0 text-sm font-bold tabular-nums ${
-                        tipo === 'gastos' ? 'text-rose-700' : 'text-emerald-700'
-                      }`}
-                    >
+                    <span className="shrink-0 text-sm font-bold tabular-nums text-zinc-950">
                       {formatCLP(Number(r.monto))}
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-stone-500">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-500">
                     <span>Fecha: {r.fecha}</span>
                     <span>Act.: {formatFechaHora(actualizadoIso)}</span>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 border-t border-stone-100 pt-3">
+                  <div className="flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-3">
                     {confirmando ? (
                       <>
-                        <span className="text-xs font-medium text-rose-700">¿Eliminar?</span>
+                        <span className="text-xs font-semibold text-zinc-900">¿Eliminar?</span>
                         <button
                           type="button"
                           onClick={() => void eliminar(r.id)}
                           disabled={eliminando}
-                          className="btn btn-danger btn-sm"
+                          className="btn btn-primary btn-sm"
                         >
                           {eliminando ? (
                             <>
@@ -545,7 +541,7 @@ export default function AdminFinanzas({ token }: { token: string }) {
           {/* Vista escritorio: tabla amplia */}
           <div className="card hidden overflow-x-auto md:block">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-stone-200 bg-stone-50 text-xs font-semibold uppercase tracking-wider text-stone-600">
+              <thead className="border-b border-zinc-200 bg-zinc-50 text-xs font-bold uppercase tracking-wider text-zinc-600">
                 <tr>
                   <th className="px-4 py-3.5">ID</th>
                   <th className="px-4 py-3.5">Fecha</th>
@@ -555,7 +551,7 @@ export default function AdminFinanzas({ token }: { token: string }) {
                   <th className="px-4 py-3.5 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-zinc-100">
                 {registros.map((r) => {
                   const idKey = String(r.id)
                   const modificada = modificaciones[idKey]
@@ -567,25 +563,21 @@ export default function AdminFinanzas({ token }: { token: string }) {
                   const eliminando = eliminandoId === idKey
 
                   return (
-                    <tr key={r.id} className="transition-colors hover:bg-stone-50/80">
-                      <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs text-stone-500">
+                    <tr key={r.id} className="transition-colors hover:bg-zinc-50/80">
+                      <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs text-zinc-500">
                         #{r.id}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3.5 text-stone-700">{r.fecha}</td>
+                      <td className="whitespace-nowrap px-4 py-3.5 text-zinc-700">{r.fecha}</td>
                       <td className="px-4 py-3.5">
-                        <span className="badge mr-2 border-stone-200 bg-stone-100 text-stone-700">
+                        <span className="badge mr-2 border-zinc-300 bg-zinc-100 text-zinc-800">
                           {etiqueta}
                         </span>
-                        <span className="font-medium text-stone-800">{detalleTexto}</span>
+                        <span className="font-medium text-zinc-900">{detalleTexto}</span>
                       </td>
-                      <td
-                        className={`whitespace-nowrap px-4 py-3.5 text-right font-semibold tabular-nums ${
-                          tipo === 'gastos' ? 'text-rose-700' : 'text-emerald-700'
-                        }`}
-                      >
+                      <td className="whitespace-nowrap px-4 py-3.5 text-right font-bold tabular-nums text-zinc-950">
                         {formatCLP(Number(r.monto))}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3.5 text-xs tabular-nums text-stone-500">
+                      <td className="whitespace-nowrap px-4 py-3.5 text-xs tabular-nums text-zinc-500">
                         {formatFechaHora(actualizadoIso)}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3.5 text-right">
@@ -595,7 +587,7 @@ export default function AdminFinanzas({ token }: { token: string }) {
                               type="button"
                               onClick={() => void eliminar(r.id)}
                               disabled={eliminando}
-                              className="btn btn-danger btn-sm"
+                              className="btn btn-primary btn-sm"
                             >
                               {eliminando ? <Spinner className="h-3.5 w-3.5" /> : 'Confirmar'}
                             </button>
@@ -613,7 +605,7 @@ export default function AdminFinanzas({ token }: { token: string }) {
                             <button
                               type="button"
                               onClick={() => abrirFormulario(r)}
-                              className="btn btn-ghost btn-sm text-amber-800 hover:bg-amber-50 hover:text-amber-900"
+                              className="btn btn-ghost btn-sm text-zinc-900 hover:bg-zinc-100"
                               aria-label={`Editar ${nombre} ${r.id}`}
                             >
                               <PencilIcon className="h-3.5 w-3.5" />
@@ -622,7 +614,7 @@ export default function AdminFinanzas({ token }: { token: string }) {
                             <button
                               type="button"
                               onClick={() => setConfirmandoId(idKey)}
-                              className="btn btn-ghost btn-sm text-rose-700 hover:bg-rose-50 hover:text-rose-800"
+                              className="btn btn-ghost btn-sm text-zinc-600 hover:bg-zinc-900 hover:text-white"
                               aria-label={`Eliminar ${nombre} ${r.id}`}
                             >
                               <TrashIcon className="h-3.5 w-3.5" />

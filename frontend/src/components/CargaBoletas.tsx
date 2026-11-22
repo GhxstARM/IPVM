@@ -203,7 +203,7 @@ export default function CargaBoletas({ token }: CargaBoletasProps) {
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="btn btn-secondary py-3 hover:border-amber-500 hover:bg-amber-50/70 hover:text-amber-800"
+            className="btn btn-secondary py-3 hover:border-zinc-950 hover:bg-zinc-950 hover:text-white"
           >
             <PaperClipIcon className="h-4 w-4" />
             Adjuntar archivo
@@ -211,7 +211,7 @@ export default function CargaBoletas({ token }: CargaBoletasProps) {
           <button
             type="button"
             onClick={() => cameraRef.current?.click()}
-            className="btn btn-secondary py-3 hover:border-amber-500 hover:bg-amber-50/70 hover:text-amber-800"
+            className="btn btn-secondary py-3 hover:border-zinc-950 hover:bg-zinc-950 hover:text-white"
           >
             <CameraIcon className="h-4 w-4" />
             Fotografiar boleta
@@ -254,10 +254,10 @@ export default function CargaBoletas({ token }: CargaBoletasProps) {
           }}
           className={`overflow-hidden rounded-2xl border-2 border-dashed transition-colors ${
             dragging
-              ? 'border-amber-500 bg-amber-50'
+              ? 'border-zinc-950 bg-zinc-100'
               : seleccion.archivo
-                ? 'border-emerald-400 bg-emerald-50/60'
-                : 'cursor-pointer border-stone-300 bg-stone-50 hover:border-amber-400 hover:bg-amber-50/50'
+                ? 'border-zinc-950 bg-zinc-50'
+                : 'cursor-pointer border-zinc-300 bg-zinc-50 hover:border-zinc-900 hover:bg-zinc-100/60'
           }`}
         >
           {seleccion.preview ? (
@@ -265,9 +265,9 @@ export default function CargaBoletas({ token }: CargaBoletasProps) {
               <img
                 src={seleccion.preview}
                 alt="Vista previa de la boleta"
-                className="max-h-72 w-full bg-stone-100 object-contain"
+                className="max-h-72 w-full bg-zinc-100 object-contain"
               />
-              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-stone-900/75 px-3.5 py-2 text-xs text-white backdrop-blur-xs">
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-zinc-950/85 px-3.5 py-2 text-xs text-white backdrop-blur-xs">
                 <span className="truncate">{seleccion.archivo?.name}</span>
                 <button
                   type="button"
@@ -284,10 +284,10 @@ export default function CargaBoletas({ token }: CargaBoletasProps) {
             </div>
           ) : seleccion.archivo ? (
             <div className="flex flex-col items-center justify-center gap-3 p-8 text-center">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-950 text-white">
                 <DocumentIcon className="h-6 w-6" />
               </span>
-              <p className="text-sm font-semibold text-emerald-800">{seleccion.archivo.name}</p>
+              <p className="text-sm font-semibold text-zinc-900">{seleccion.archivo.name}</p>
               <button
                 type="button"
                 onClick={resetForm}
@@ -299,13 +299,13 @@ export default function CargaBoletas({ token }: CargaBoletasProps) {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center gap-2.5 px-6 py-10 text-center">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-stone-500 shadow-card">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-zinc-700 shadow-card">
                 <CameraIcon className="h-6 w-6" />
               </span>
-              <p className="text-sm font-semibold text-stone-700">
+              <p className="text-sm font-semibold text-zinc-800">
                 Arrastra una fotografía o haz clic para seleccionar
               </p>
-              <p className="text-xs text-stone-500">PNG, JPG, PDF — máx. 10 MB</p>
+              <p className="text-xs text-zinc-500">PNG, JPG, PDF — máx. 10 MB</p>
             </div>
           )}
         </div>
@@ -364,7 +364,7 @@ export default function CargaBoletas({ token }: CargaBoletasProps) {
             <div className="card space-y-5 p-6">
               <div>
                 <h4 className="section-title text-base">Confirma los datos antes de subir</h4>
-                <p className="mt-0.5 text-xs text-stone-500">
+                <p className="mt-0.5 text-xs text-zinc-500">
                   Revisa los valores detectados y corrígelos si hace falta.
                 </p>
               </div>
@@ -439,7 +439,7 @@ export default function CargaBoletas({ token }: CargaBoletasProps) {
                 type="button"
                 onClick={handleSubirHoja}
                 disabled={!puedeSubir}
-                className="btn btn-success btn-lg w-full"
+                className="btn btn-primary btn-lg w-full"
               >
                 {subiendo ? (
                   <>

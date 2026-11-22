@@ -1,20 +1,19 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Sistema de diseño · Ministerio Por una Vida Mejor
-   Neutros cálidos (stone) + acento institucional (amber-700).
-   Éxito/ingresos: emerald · Error/egresos: rose · Información: sky.
-   Radios: tarjetas y modales rounded-2xl · botones, inputs y chips rounded-xl.
-   Texto secundario nunca más claro que stone-500 (contraste AA sobre blanco).
+   Sistema de diseño · Iglesia de Dios PVM — Por una Vida Mejor
+   Estética monocromática de alto contraste inspirada en el emblema oficial PVM:
+   Negro profundo (zinc-950) + Blanco puro + Escala de grises neutros (zinc).
+   Tipografía geométrica limpia con subtítulos espaciados ("IGLESIA DE DIOS").
    ───────────────────────────────────────────────────────────────────────────── */
 
 @theme {
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-display: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+  --font-display: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
-  --shadow-card: 0 1px 2px rgb(28 25 23 / 0.04), 0 1px 3px rgb(28 25 23 / 0.06);
-  --shadow-card-hover: 0 4px 6px -2px rgb(28 25 23 / 0.05), 0 12px 24px -6px rgb(28 25 23 / 0.12);
-  --shadow-overlay: 0 24px 48px -12px rgb(28 25 23 / 0.35);
+  --shadow-card: 0 1px 2px rgb(9 9 11 / 0.05), 0 2px 6px rgb(9 9 11 / 0.05);
+  --shadow-card-hover: 0 8px 16px -4px rgb(9 9 11 / 0.08), 0 16px 32px -8px rgb(9 9 11 / 0.14);
+  --shadow-overlay: 0 24px 48px -12px rgb(9 9 11 / 0.45);
 
   --animate-fade-in: fade-in 0.2s ease-out both;
   --animate-slide-up: slide-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -44,16 +43,16 @@
   body {
     margin: 0;
     font-family: var(--font-sans);
-    background-color: var(--color-stone-50);
-    color: var(--color-stone-800);
+    background-color: var(--color-zinc-50);
+    color: var(--color-zinc-900);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
   }
 
   ::selection {
-    background-color: var(--color-amber-200);
-    color: var(--color-stone-900);
+    background-color: var(--color-zinc-950);
+    color: #ffffff;
   }
 
   button:not(:disabled),
@@ -63,9 +62,9 @@
     cursor: pointer;
   }
 
-  /* Foco visible y consistente para teclado en cualquier control */
+  /* Foco visible de alto contraste en teclado */
   :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-    outline: 2px solid var(--color-amber-600);
+    outline: 2px solid var(--color-zinc-950);
     outline-offset: 2px;
   }
 
@@ -90,62 +89,68 @@
     @apply px-6 py-3;
   }
   .btn-primary {
-    @apply bg-amber-700 text-white shadow-sm hover:bg-amber-800 hover:shadow-md;
+    @apply bg-zinc-950 text-white shadow-sm hover:bg-zinc-800 hover:shadow-md;
   }
   .btn-dark {
-    @apply bg-stone-900 text-white shadow-sm hover:bg-stone-800;
+    @apply bg-zinc-950 text-white shadow-sm hover:bg-zinc-800;
+  }
+  .btn-invert {
+    @apply bg-white text-zinc-950 shadow-sm hover:bg-zinc-100 hover:shadow-md;
+  }
+  .btn-outline-invert {
+    @apply border border-white/30 bg-white/5 text-white hover:border-white/60 hover:bg-white/15;
   }
   .btn-success {
-    @apply bg-emerald-700 text-white shadow-sm hover:bg-emerald-800;
+    @apply bg-zinc-900 text-white shadow-sm hover:bg-zinc-800;
   }
   .btn-secondary {
-    @apply border border-stone-300 bg-white text-stone-700 shadow-sm hover:border-stone-400 hover:bg-stone-50;
+    @apply border border-zinc-300 bg-white text-zinc-800 shadow-sm hover:border-zinc-900 hover:bg-zinc-50;
   }
   .btn-danger {
-    @apply border border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-300 hover:bg-rose-100;
+    @apply border border-zinc-300 bg-zinc-100 text-zinc-900 hover:border-zinc-900 hover:bg-zinc-900 hover:text-white;
   }
   .btn-ghost {
-    @apply text-stone-600 hover:bg-stone-100 hover:text-stone-900;
+    @apply text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950;
   }
 
   /* Formularios */
   .label {
-    @apply mb-1.5 block text-sm font-medium text-stone-700;
+    @apply mb-1.5 block text-sm font-semibold text-zinc-800;
   }
   .input {
-    @apply w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-stone-800
-      placeholder:text-stone-400 transition duration-150
-      hover:border-stone-400
-      focus:border-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-600/25
-      disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-500;
+    @apply w-full rounded-xl border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900
+      placeholder:text-zinc-400 transition duration-150
+      hover:border-zinc-500
+      focus:border-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-950/15
+      disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-500;
   }
   .input-error {
-    @apply border-rose-400 bg-rose-50 hover:border-rose-400 focus:border-rose-500 focus:ring-rose-500/25;
+    @apply border-zinc-900 bg-zinc-100 hover:border-zinc-950 focus:border-zinc-950 focus:ring-zinc-950/20;
   }
 
   /* Superficies */
   .card {
-    @apply rounded-2xl border border-stone-200 bg-white shadow-card;
+    @apply rounded-2xl border border-zinc-200 bg-white shadow-card;
   }
   .card-hover {
-    @apply transition duration-200 hover:-translate-y-0.5 hover:shadow-card-hover;
+    @apply transition duration-200 hover:-translate-y-0.5 hover:border-zinc-400 hover:shadow-card-hover;
   }
   .panel {
-    @apply rounded-2xl border border-stone-200 bg-stone-50;
+    @apply rounded-2xl border border-zinc-200 bg-zinc-100/70;
   }
 
-  /* Tipografía */
+  /* Tipografía inspirada en el logotipo PVM */
   .eyebrow {
-    @apply text-xs font-semibold uppercase tracking-widest text-amber-700;
+    @apply text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-500;
   }
   .page-title {
-    @apply font-display text-3xl font-bold tracking-tight text-stone-900 sm:text-4xl;
+    @apply font-display text-3xl font-black tracking-tight text-zinc-950 sm:text-4xl;
   }
   .section-title {
-    @apply text-lg font-bold tracking-tight text-stone-900;
+    @apply text-lg font-extrabold tracking-tight text-zinc-950;
   }
   .muted {
-    @apply text-sm text-stone-500;
+    @apply text-sm text-zinc-500;
   }
 
   /* Contenedores de página */
@@ -153,21 +158,21 @@
     @apply mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 sm:py-12;
   }
 
-  /* Avisos */
+  /* Avisos de alto contraste */
   .alert {
     @apply flex items-start gap-3 rounded-xl border px-4 py-3 text-sm font-medium;
   }
   .alert-success {
-    @apply border-emerald-200 bg-emerald-50 text-emerald-800;
+    @apply border-zinc-900 bg-zinc-950 text-white;
   }
   .alert-error {
-    @apply border-rose-200 bg-rose-50 text-rose-800;
+    @apply border-zinc-400 bg-zinc-100 text-zinc-950;
   }
   .alert-info {
-    @apply border-sky-200 bg-sky-50 text-sky-800;
+    @apply border-zinc-200 bg-zinc-50 text-zinc-800;
   }
   .alert-warning {
-    @apply border-amber-200 bg-amber-50 text-amber-900;
+    @apply border-zinc-300 bg-zinc-100 text-zinc-900;
   }
 
   /* Etiquetas */
@@ -177,23 +182,23 @@
 
   /* Pestañas segmentadas */
   .segmented {
-    @apply flex gap-1 rounded-xl bg-stone-100 p-1;
+    @apply flex gap-1 rounded-xl border border-zinc-200 bg-zinc-100 p-1;
   }
   .segmented-item {
-    @apply flex-1 rounded-lg px-3 py-2 text-center text-sm font-medium text-stone-600 transition duration-200
-      hover:bg-white/70 hover:text-stone-900;
+    @apply flex-1 rounded-lg px-3 py-2 text-center text-sm font-medium text-zinc-600 transition duration-200
+      hover:bg-white/80 hover:text-zinc-950;
   }
   .segmented-item[aria-selected="true"],
   .segmented-item[aria-current="page"] {
-    @apply bg-white font-semibold text-amber-800 shadow-sm hover:bg-white;
+    @apply bg-zinc-950 font-semibold text-white shadow-sm hover:bg-zinc-900 hover:text-white;
   }
 
   /* Superposición de modales */
   .overlay {
-    @apply fixed inset-0 z-50 flex animate-fade-in items-end justify-center bg-stone-950/55 backdrop-blur-sm sm:items-center sm:px-4;
+    @apply fixed inset-0 z-50 flex animate-fade-in items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:px-4;
   }
   .modal {
-    @apply w-full animate-slide-up overflow-hidden bg-white shadow-overlay sm:animate-pop-in;
+    @apply w-full animate-slide-up overflow-hidden border border-zinc-200 bg-white shadow-overlay sm:animate-pop-in;
   }
 }
 

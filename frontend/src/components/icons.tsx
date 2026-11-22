@@ -25,16 +25,60 @@ function Icon({ children, className = 'h-5 w-5', ...props }: IconProps & { child
   )
 }
 
+export interface PvmLogoProps {
+  className?: string
+  size?: 'sm' | 'md' | 'lg' | 'xl'
+  /** Muestra un anillo exterior blanco para destacar sobre fondos negros */
+  invertRing?: boolean
+}
+
+const LOGO_SIZES: Record<NonNullable<PvmLogoProps['size']>, string> = {
+  sm: 'h-9 w-9',
+  md: 'h-11 w-11',
+  lg: 'h-16 w-16',
+  xl: 'h-28 w-28 sm:h-32 sm:w-32',
+}
+
+/** Emblema circular oficial de Iglesia de Dios PVM (/logo-pvm.png). */
+export function PvmLogo({
+  className = '',
+  size = 'md',
+  invertRing = false,
+}: PvmLogoProps) {
+  return (
+    <img
+      src="/logo-pvm.png"
+      alt="Logo Iglesia de Dios PVM — Por una vida mejor"
+      className={`${LOGO_SIZES[size]} shrink-0 rounded-full bg-white object-contain select-none ${
+        invertRing
+          ? 'ring-2 ring-white/90 shadow-lg'
+          : 'ring-1 ring-zinc-900/15 shadow-sm'
+      } ${className}`}
+    />
+  )
+}
+
+/** Símbolo vectorial PVM: cruz integrada con arco circular y llama. */
 export const CrossIcon = (p: IconProps) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"
-    fill="currentColor"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
     aria-hidden="true"
     className="h-5 w-5"
     {...p}
   >
-    <path d="M10.25 2.5h3.5v6.25h6.25v3.5h-6.25v9.25h-3.5v-9.25H4v-3.5h6.25V2.5Z" />
+    <path d="M9.5 8.5a6.5 6.5 0 1 0 5.5 9.5" />
+    <path d="M10.5 3.5v13M7 7h7" />
+    <path
+      d="M14.5 7.5c0-2 1.5-3.5 3.5-4-0.8 1.2-0.8 2.2 0.3 1.8-0.9 1.2-1.4 2-1.4 2.5z"
+      fill="currentColor"
+      stroke="none"
+    />
   </svg>
 )
 

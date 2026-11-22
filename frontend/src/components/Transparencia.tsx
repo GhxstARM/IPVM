@@ -176,13 +176,13 @@ export default function Transparencia() {
             <ExclamationIcon className="mt-0.5 h-5 w-5 shrink-0" />
             <div>
               <p className="font-semibold">No se pudo cargar la rendición de cuentas</p>
-              <p className="mt-0.5 font-normal text-rose-700">{error}</p>
+              <p className="mt-0.5 font-normal text-zinc-700">{error}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => void cargar()}
-            className="btn btn-danger btn-sm self-start sm:self-auto"
+            className="btn btn-primary btn-sm self-start sm:self-auto"
           >
             <RefreshIcon className="h-3.5 w-3.5" />
             Reintentar
@@ -210,27 +210,33 @@ export default function Transparencia() {
       value: hayIngresos ? formatCLP(totalRecaudado) : '—',
       Icono: BanknotesIcon,
       sub: hayIngresos ? 'Colectas, ofrendas y donaciones' : 'Sin ingresos registrados en el período',
-      cardClass: 'border-emerald-200/80 bg-emerald-50/70',
-      iconClass: 'bg-emerald-100 text-emerald-700',
-      valueColor: 'text-emerald-800',
+      cardClass: 'border-zinc-900 bg-zinc-950 text-white',
+      labelClass: 'text-zinc-300',
+      iconClass: 'bg-white/15 text-white',
+      valueColor: 'text-white',
+      subClass: 'text-zinc-400',
     },
     {
       label: 'Total Gastado',
       value: formatCLP(totalGastado),
       Icono: ArrowDownCircleIcon,
       sub: 'Todos los egresos del período',
-      cardClass: 'border-rose-200/80 bg-rose-50/70',
-      iconClass: 'bg-rose-100 text-rose-700',
-      valueColor: 'text-rose-800',
+      cardClass: 'border-zinc-200 bg-white text-zinc-950',
+      labelClass: 'text-zinc-600',
+      iconClass: 'bg-zinc-100 text-zinc-900',
+      valueColor: 'text-zinc-950',
+      subClass: 'text-zinc-500',
     },
     {
       label: 'Saldo Disponible',
       value: hayIngresos ? formatCLP(saldo) : '—',
       Icono: BuildingLibraryIcon,
       sub: 'Reserva para el próximo período',
-      cardClass: 'border-sky-200/80 bg-sky-50/70',
-      iconClass: 'bg-sky-100 text-sky-700',
-      valueColor: 'text-sky-800',
+      cardClass: 'border-zinc-300 bg-zinc-100 text-zinc-950',
+      labelClass: 'text-zinc-700',
+      iconClass: 'bg-zinc-950 text-white',
+      valueColor: 'text-zinc-950',
+      subClass: 'text-zinc-600',
     },
   ]
 
@@ -238,15 +244,15 @@ export default function Transparencia() {
     <div className="page animate-fade-in space-y-8">
       {/* Encabezado */}
       <div className="space-y-2">
-        <p className="eyebrow">Transparencia Financiera</p>
+        <p className="eyebrow">Transparencia Financiera · PVM</p>
         <div className="flex flex-wrap items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-950 text-white">
             <ChartIcon className="h-5 w-5" />
           </span>
           <h2 className="page-title">Rendición de Cuentas</h2>
         </div>
         <p className="muted">
-          Período: <strong className="font-semibold text-stone-700">{periodoVisible}</strong> ·
+          Período: <strong className="font-semibold text-zinc-800">{periodoVisible}</strong> ·
           Montos en Pesos Chilenos (CLP)
         </p>
       </div>
@@ -355,7 +361,7 @@ export default function Transparencia() {
             )}
 
             {tipoFiltro !== 'periodo' && (
-              <button type="button" onClick={limpiarFiltros} className="btn btn-ghost text-amber-800">
+              <button type="button" onClick={limpiarFiltros} className="btn btn-ghost text-zinc-900">
                 Limpiar filtro
               </button>
             )}
@@ -365,7 +371,7 @@ export default function Transparencia() {
             <p
               id="error-rango"
               role="alert"
-              className="mt-3 flex items-center gap-1.5 text-sm font-medium text-rose-700"
+              className="mt-3 flex items-center gap-1.5 text-sm font-medium text-zinc-900"
             >
               <ExclamationIcon className="h-4 w-4 shrink-0" />
               La fecha inicial debe ser anterior o igual a la fecha final.
@@ -375,28 +381,34 @@ export default function Transparencia() {
       )}
 
       {meses.length === 0 && (
-        <div className="panel flex items-center gap-3 p-5 text-sm text-stone-600">
-          <ChartIcon className="h-5 w-5 shrink-0 text-stone-500" />
+        <div className="panel flex items-center gap-3 p-5 text-sm text-zinc-600">
+          <ChartIcon className="h-5 w-5 shrink-0 text-zinc-700" />
           <span>Aún no hay movimientos registrados.</span>
         </div>
       )}
 
       {/* Métricas clave */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {metricas.map(({ label, value, Icono, sub, cardClass, iconClass, valueColor }) => (
-          <div key={label} className={`rounded-2xl border p-5 shadow-card ${cardClass}`}>
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-stone-700">{label}</p>
-              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${iconClass}`}>
-                <Icono className="h-5 w-5" />
-              </span>
+        {metricas.map(
+          ({ label, value, Icono, sub, cardClass, labelClass, iconClass, valueColor, subClass }) => (
+            <div key={label} className={`rounded-2xl border p-5 shadow-card ${cardClass}`}>
+              <div className="flex items-center justify-between gap-2">
+                <p className={`text-sm font-semibold ${labelClass}`}>{label}</p>
+                <span
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${iconClass}`}
+                >
+                  <Icono className="h-5 w-5" />
+                </span>
+              </div>
+              <p
+                className={`mt-3 text-2xl font-black tracking-tight tabular-nums sm:text-3xl ${valueColor}`}
+              >
+                {value}
+              </p>
+              <p className={`mt-1.5 text-xs ${subClass}`}>{sub}</p>
             </div>
-            <p className={`mt-3 text-2xl font-bold tracking-tight tabular-nums sm:text-3xl ${valueColor}`}>
-              {value}
-            </p>
-            <p className="mt-1.5 text-xs text-stone-600">{sub}</p>
-          </div>
-        ))}
+          ),
+        )}
       </div>
 
       {/* Desglose de gastos */}
@@ -404,30 +416,30 @@ export default function Transparencia() {
         <h3 className="section-title">Desglose de Gastos por Categoría</h3>
         {categorias.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-stone-100 text-stone-500">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600">
               <ChartIcon className="h-5 w-5" />
             </span>
-            <p className="text-sm text-stone-500">No hay gastos registrados en este período.</p>
+            <p className="text-sm text-zinc-500">No hay gastos registrados en este período.</p>
           </div>
         ) : (
           <ul className="space-y-4">
             {categorias.map(({ categoria, Icono, monto, porcentaje }) => (
               <li key={categoria} className="space-y-2">
                 <div className="flex items-center justify-between gap-3 text-sm">
-                  <span className="flex min-w-0 items-center gap-2.5 font-medium text-stone-800">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
+                  <span className="flex min-w-0 items-center gap-2.5 font-medium text-zinc-800">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-950 text-white">
                       <Icono className="h-4 w-4" />
                     </span>
                     <span className="truncate">{categoria}</span>
                   </span>
-                  <span className="shrink-0 font-semibold tabular-nums text-stone-900">
+                  <span className="shrink-0 font-semibold tabular-nums text-zinc-950">
                     {formatCLP(monto)}
-                    <span className="ml-1.5 font-normal text-stone-500">({porcentaje}%)</span>
+                    <span className="ml-1.5 font-normal text-zinc-500">({porcentaje}%)</span>
                   </span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-stone-100">
+                <div className="h-2 overflow-hidden rounded-full bg-zinc-100">
                   <div
-                    className="h-full rounded-full bg-amber-600 transition-all duration-500"
+                    className="h-full rounded-full bg-zinc-950 transition-all duration-500"
                     style={{ width: `${porcentaje}%` }}
                   />
                 </div>
@@ -439,31 +451,31 @@ export default function Transparencia() {
 
       {/* Últimas transacciones */}
       <section className="card overflow-hidden">
-        <div className="border-b border-stone-100 px-6 py-4">
+        <div className="border-b border-zinc-100 px-6 py-4">
           <h3 className="section-title">Últimos Movimientos</h3>
         </div>
         {movimientos.length === 0 ? (
           <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-stone-100 text-stone-500">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600">
               <BanknotesIcon className="h-5 w-5" />
             </span>
-            <p className="text-sm text-stone-500">No hay movimientos en este período.</p>
+            <p className="text-sm text-zinc-500">No hay movimientos en este período.</p>
           </div>
         ) : (
-          <ul className="divide-y divide-stone-100">
+          <ul className="divide-y divide-zinc-100">
             {movimientos.map(({ fecha, desc, tipo, monto }, i) => {
               const esIngreso = tipo === 'ingreso'
               return (
                 <li
                   key={`${tipo}-${fecha}-${desc}-${i}`}
-                  className="flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-stone-50 sm:px-6"
+                  className="flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-zinc-50 sm:px-6"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <span
                       className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
                         esIngreso
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : 'bg-rose-50 text-rose-700'
+                          ? 'bg-zinc-950 text-white'
+                          : 'border border-zinc-300 bg-zinc-100 text-zinc-700'
                       }`}
                     >
                       {esIngreso ? (
@@ -473,15 +485,15 @@ export default function Transparencia() {
                       )}
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-stone-800">
+                      <p className="truncate text-sm font-semibold text-zinc-900">
                         {desc || 'Sin descripción'}
                       </p>
-                      <p className="text-xs text-stone-500">{formatFecha(fecha)}</p>
+                      <p className="text-xs text-zinc-500">{formatFecha(fecha)}</p>
                     </div>
                   </div>
                   <span
                     className={`shrink-0 text-sm font-bold tabular-nums ${
-                      monto > 0 ? 'text-emerald-700' : 'text-rose-700'
+                      monto > 0 ? 'text-zinc-950' : 'text-zinc-600'
                     }`}
                   >
                     {monto > 0 ? '+' : ''}
@@ -494,7 +506,7 @@ export default function Transparencia() {
         )}
       </section>
 
-      <div className="flex flex-col items-center justify-center gap-2 text-center text-xs text-stone-500 sm:flex-row sm:gap-4">
+      <div className="flex flex-col items-center justify-center gap-2 text-center text-xs text-zinc-500 sm:flex-row sm:gap-4">
         <p>
           Los antecedentes son registrados y procesados por la secretaría parroquial.
           {consultadoEn &&
@@ -510,7 +522,7 @@ export default function Transparencia() {
           type="button"
           onClick={() => void cargar()}
           disabled={cargando}
-          className="inline-flex items-center gap-1 font-semibold text-amber-800 transition-colors hover:text-amber-900 disabled:opacity-50"
+          className="inline-flex items-center gap-1 font-semibold text-zinc-900 transition-colors hover:text-zinc-700 disabled:opacity-50"
         >
           <RefreshIcon className={`h-3.5 w-3.5 ${cargando ? 'animate-spin' : ''}`} />
           Actualizar

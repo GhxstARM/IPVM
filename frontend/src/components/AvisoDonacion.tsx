@@ -9,18 +9,18 @@ interface AvisoDonacionProps {
 function estiloPorEstado(estado: ResultadoDonacion['estado']) {
   if (estado === 'aprobada') {
     return {
-      fondo: 'bg-emerald-700 text-white',
+      fondo: 'bg-zinc-950 text-white border-b border-zinc-800',
       Icono: CheckCircleIcon,
     }
   }
   if (estado === 'anulada') {
     return {
-      fondo: 'bg-amber-600 text-white',
+      fondo: 'bg-zinc-200 text-zinc-900 border-b border-zinc-300',
       Icono: InfoIcon,
     }
   }
   return {
-    fondo: 'bg-rose-700 text-white',
+    fondo: 'bg-zinc-800 text-white border-b border-zinc-700',
     Icono: ExclamationIcon,
   }
 }
@@ -56,7 +56,7 @@ export default function AvisoDonacion({ resultado, onClose }: AvisoDonacionProps
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg p-1.5 text-white/80 transition-colors hover:bg-white/15 hover:text-white"
+          className="rounded-lg p-1.5 opacity-80 transition-opacity hover:opacity-100"
           aria-label="Cerrar aviso"
         >
           <XIcon className="h-4 w-4" />

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useModalDialog } from '../hooks/useModalDialog'
 import { loginSecretaria } from '../services/secretariaService'
 import { extraerMensaje } from '../utils/errors'
-import { ExclamationIcon, EyeIcon, EyeOffIcon, LockIcon, LoginIcon, XIcon } from './icons'
+import { ExclamationIcon, EyeIcon, EyeOffIcon, LoginIcon, PvmLogo, XIcon } from './icons'
 import Spinner from './Spinner'
 
 interface LoginModalProps {
@@ -46,17 +46,15 @@ export default function LoginModal({ onSuccess, onClose }: LoginModalProps) {
         aria-labelledby="login-modal-title"
         className="modal rounded-t-3xl sm:max-w-sm sm:rounded-2xl"
       >
-        {/* Encabezado */}
-        <div className="flex items-center justify-between bg-stone-900 px-6 py-5">
+        {/* Encabezado negro con logo PVM */}
+        <div className="flex items-center justify-between bg-zinc-950 px-6 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-800 text-amber-400">
-              <LockIcon className="h-5 w-5" />
-            </div>
+            <PvmLogo size="sm" invertRing />
             <div>
-              <p className="mb-0.5 text-xs font-semibold uppercase tracking-widest leading-none text-stone-400">
-                Panel Admin
+              <p className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.22em] leading-none text-zinc-400">
+                Panel Admin · PVM
               </p>
-              <h2 id="login-modal-title" className="text-base font-bold leading-none text-white">
+              <h2 id="login-modal-title" className="text-base font-extrabold leading-none text-white">
                 Acceso Secretaría
               </h2>
             </div>
@@ -65,7 +63,7 @@ export default function LoginModal({ onSuccess, onClose }: LoginModalProps) {
             type="button"
             onClick={onClose}
             disabled={cargando}
-            className="-mr-1 rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-800 hover:text-white disabled:opacity-50"
+            className="-mr-1 rounded-lg p-2 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white disabled:opacity-50"
             aria-label="Cerrar ventana de acceso"
           >
             <XIcon className="h-5 w-5" />
@@ -74,7 +72,7 @@ export default function LoginModal({ onSuccess, onClose }: LoginModalProps) {
 
         {/* Formulario */}
         <form onSubmit={handleSubmit} className="space-y-5 px-6 py-6">
-          <p className="text-sm leading-relaxed text-stone-600">
+          <p className="text-sm leading-relaxed text-zinc-600">
             Ingresa la contraseña para acceder al panel de secretaría del ministerio.
           </p>
 
@@ -103,7 +101,7 @@ export default function LoginModal({ onSuccess, onClose }: LoginModalProps) {
               <button
                 type="button"
                 onClick={() => setMostrar((v) => !v)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-700"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800"
                 aria-label={mostrar ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               >
                 {mostrar ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
@@ -114,7 +112,7 @@ export default function LoginModal({ onSuccess, onClose }: LoginModalProps) {
               <p
                 id="login-error"
                 role="alert"
-                className="mt-2 flex items-center gap-1.5 text-sm font-medium text-rose-700"
+                className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-zinc-900"
               >
                 <ExclamationIcon className="h-4 w-4 shrink-0" />
                 {error}
@@ -125,7 +123,7 @@ export default function LoginModal({ onSuccess, onClose }: LoginModalProps) {
           <button
             type="submit"
             disabled={cargando || password.length === 0}
-            className="btn btn-dark w-full py-3"
+            className="btn btn-primary w-full py-3"
           >
             {cargando ? (
               <>
@@ -140,7 +138,7 @@ export default function LoginModal({ onSuccess, onClose }: LoginModalProps) {
             )}
           </button>
 
-          <p className="text-center text-xs text-stone-500">
+          <p className="text-center text-xs text-zinc-500">
             Acceso exclusivo para personal autorizado del ministerio.
           </p>
         </form>

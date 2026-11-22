@@ -109,12 +109,12 @@ export default function AdminInicio() {
           <p className="eyebrow">Vista previa — Pastor Héctor Chanampe</p>
           {cargando ? (
             <div className="space-y-2 py-1" aria-busy="true">
-              <div className="h-4 w-full animate-pulse rounded bg-stone-200" />
-              <div className="h-4 w-5/6 animate-pulse rounded bg-stone-200" />
-              <div className="h-4 w-2/3 animate-pulse rounded bg-stone-100" />
+              <div className="h-4 w-full animate-pulse rounded bg-zinc-200" />
+              <div className="h-4 w-5/6 animate-pulse rounded bg-zinc-200" />
+              <div className="h-4 w-2/3 animate-pulse rounded bg-zinc-100" />
             </div>
           ) : (
-            <blockquote className="min-h-[3rem] border-l-2 border-amber-300 pl-4 text-sm leading-relaxed italic text-stone-700 whitespace-pre-wrap">
+            <blockquote className="min-h-[3rem] border-l-2 border-zinc-950 pl-4 text-sm leading-relaxed italic text-zinc-700 whitespace-pre-wrap">
               “{mensaje || 'El mensaje pastoral aparecerá aquí...'}”
             </blockquote>
           )}
@@ -124,10 +124,10 @@ export default function AdminInicio() {
         <div className="card space-y-4 p-6">
           <div>
             <label className="label" htmlFor="msg-inicio">
-              Texto del mensaje pastoral <span className="text-rose-600">*</span>
+              Texto del mensaje pastoral <span className="text-zinc-950">*</span>
             </label>
             {cargando ? (
-              <div className="h-36 w-full animate-pulse rounded-xl bg-stone-100" />
+              <div className="h-36 w-full animate-pulse rounded-xl bg-zinc-100" />
             ) : (
               <textarea
                 id="msg-inicio"
@@ -143,14 +143,14 @@ export default function AdminInicio() {
             )}
             <div className="mt-1.5 flex items-center justify-between gap-2 text-xs">
               {hayCambios && !cargando ? (
-                <span className="inline-flex items-center gap-1 font-medium text-amber-800" role="status">
+                <span className="inline-flex items-center gap-1 font-semibold text-zinc-900" role="status">
                   <InfoIcon className="h-3.5 w-3.5" />
                   Tienes cambios sin guardar
                 </span>
               ) : (
                 <span />
               )}
-              <span className="tabular-nums text-stone-500">{mensaje.length} / 1000 caracteres</span>
+              <span className="tabular-nums text-zinc-500">{mensaje.length} / 1000 caracteres</span>
             </div>
           </div>
 

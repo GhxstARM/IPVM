@@ -126,7 +126,7 @@ export default function AdminEventos() {
 
         <div>
           <label className="label" htmlFor="ev-titulo">
-            Título <span className="text-rose-600">*</span>
+            Título <span className="text-zinc-950">*</span>
           </label>
           <input
             id="ev-titulo"
@@ -143,7 +143,7 @@ export default function AdminEventos() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="label" htmlFor="ev-fecha">
-              Fecha <span className="text-rose-600">*</span>
+              Fecha <span className="text-zinc-950">*</span>
             </label>
             <input
               id="ev-fecha"
@@ -156,7 +156,7 @@ export default function AdminEventos() {
           </div>
           <div>
             <label className="label" htmlFor="ev-hora">
-              Hora <span className="text-rose-600">*</span>
+              Hora <span className="text-zinc-950">*</span>
             </label>
             <input
               id="ev-hora"
@@ -203,7 +203,7 @@ export default function AdminEventos() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h4 className="section-title text-base">
-            Eventos publicados {!cargando && <span className="text-stone-500">({eventos.length})</span>}
+            Eventos publicados {!cargando && <span className="text-zinc-500">({eventos.length})</span>}
           </h4>
         </div>
 
@@ -212,10 +212,10 @@ export default function AdminEventos() {
             {[1, 2].map((i) => (
               <div key={i} className="card flex animate-pulse items-center justify-between p-5">
                 <div className="space-y-2">
-                  <div className="h-4 w-48 rounded bg-stone-200" />
-                  <div className="h-3 w-32 rounded bg-stone-100" />
+                  <div className="h-4 w-48 rounded bg-zinc-200" />
+                  <div className="h-3 w-32 rounded bg-zinc-100" />
                 </div>
-                <div className="h-8 w-20 rounded-xl bg-stone-100" />
+                <div className="h-8 w-20 rounded-xl bg-zinc-100" />
               </div>
             ))}
           </div>
@@ -223,10 +223,10 @@ export default function AdminEventos() {
 
         {!cargando && eventos.length === 0 && (
           <div className="card flex flex-col items-center gap-2.5 px-6 py-12 text-center">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-stone-100 text-stone-500">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-zinc-950 text-white">
               <CalendarIcon className="h-5 w-5" />
             </span>
-            <p className="text-sm font-medium text-stone-600">No hay eventos publicados aún.</p>
+            <p className="text-sm font-medium text-zinc-600">No hay eventos publicados aún.</p>
           </div>
         )}
 
@@ -237,14 +237,14 @@ export default function AdminEventos() {
                 key={ev.id}
                 className="card flex flex-col overflow-hidden sm:flex-row sm:items-stretch"
               >
-                <div className="h-1.5 shrink-0 bg-amber-700 sm:h-auto sm:w-1.5" />
+                <div className="h-1.5 shrink-0 bg-zinc-950 sm:h-auto sm:w-1.5" />
 
                 <div className="flex flex-1 flex-col gap-1.5 p-4 sm:p-5">
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <h5 className="text-sm font-bold leading-snug text-stone-900">{ev.titulo}</h5>
-                    <div className="flex shrink-0 items-center gap-3 text-xs text-stone-500">
+                    <h5 className="text-sm font-bold leading-snug text-zinc-950">{ev.titulo}</h5>
+                    <div className="flex shrink-0 items-center gap-3 text-xs text-zinc-500">
                       <span className="inline-flex items-center gap-1">
-                        <CalendarIcon className="h-3.5 w-3.5 text-amber-700" />
+                        <CalendarIcon className="h-3.5 w-3.5 text-zinc-900" />
                         <time dateTime={ev.fecha}>{formatFecha(ev.fecha)}</time>
                       </span>
                       {ev.hora && (
@@ -256,7 +256,7 @@ export default function AdminEventos() {
                     </div>
                   </div>
                   {ev.descripcion && (
-                    <p className="text-xs leading-relaxed text-stone-600">{ev.descripcion}</p>
+                    <p className="text-xs leading-relaxed text-zinc-600">{ev.descripcion}</p>
                   )}
                 </div>
 

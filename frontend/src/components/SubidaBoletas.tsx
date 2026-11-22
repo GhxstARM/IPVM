@@ -3,7 +3,7 @@ import AdminEventos from './AdminEventos'
 import AdminFinanzas from './AdminFinanzas'
 import AdminInicio from './AdminInicio'
 import CargaBoletas from './CargaBoletas'
-import { BanknotesIcon, CalendarIcon, DocumentIcon, LockIcon, PencilIcon } from './icons'
+import { BanknotesIcon, CalendarIcon, DocumentIcon, LockIcon, PencilIcon, PvmLogo } from './icons'
 
 interface SubidaBoletasProps {
   onLogout: () => void
@@ -33,20 +33,23 @@ export default function SubidaBoletas({ onLogout, token }: SubidaBoletasProps) {
     <div className="page animate-fade-in space-y-6">
       {/* Barra superior: título + cerrar sesión */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="space-y-1">
-          <p className="eyebrow flex items-center gap-1.5">
-            <LockIcon className="h-3.5 w-3.5" />
-            Sesión autenticada
-          </p>
-          <h2 className="page-title">Panel de Secretaría</h2>
-          <p className="muted">
-            Gestiona boletas, eventos, mensaje pastoral y movimientos financieros.
-          </p>
+        <div className="flex items-center gap-3.5">
+          <PvmLogo size="md" />
+          <div className="space-y-0.5">
+            <p className="eyebrow flex items-center gap-1.5">
+              <LockIcon className="h-3.5 w-3.5 text-zinc-900" />
+              Sesión autenticada · PVM
+            </p>
+            <h2 className="page-title">Panel de Secretaría</h2>
+            <p className="muted">
+              Gestiona boletas, eventos, mensaje pastoral y movimientos financieros.
+            </p>
+          </div>
         </div>
         <button
           type="button"
           onClick={onLogout}
-          className="btn btn-secondary hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
+          className="btn btn-secondary hover:border-zinc-950 hover:bg-zinc-950 hover:text-white"
         >
           Cerrar Sesión
         </button>
