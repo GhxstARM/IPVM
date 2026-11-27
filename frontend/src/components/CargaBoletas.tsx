@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { API_URL } from '../config'
 import { CATEGORIAS_GASTO } from '../types/finanzas'
-import { fechaAInput, inputAFecha, soloDigitos } from '../utils/format'
+import { fechaAInput, inputAFecha, montoADigitos, soloDigitos } from '../utils/format'
 import {
   CameraIcon,
   CheckCircleIcon,
@@ -129,7 +129,7 @@ export default function CargaBoletas({ token }: CargaBoletasProps) {
             : 'Otros',
           fecha: fechaAInput(analisis.fecha),
           razon: razon === 'No detectado' ? '' : razon,
-          monto: soloDigitos(String(analisis.monto ?? '')),
+          monto: montoADigitos(analisis.monto),
         })
       } else {
         setResultado({ ok: false, texto: `Error procesando imagen: ${data.error}` })

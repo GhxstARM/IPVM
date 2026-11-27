@@ -12,6 +12,40 @@ export function formatCLP(n: number): string {
 /** Deja solo los dígitos: "175.000" -> "175000" */
 export const soloDigitos = (val: string): string => val.replace(/\D/g, '')
 
+/**
+ * Convierte un monto devuelto por el OCR/IA a pesos enteros (solo dígitos),
+ * respetando el separador decimal:
+ *   1400.0 -> "1400" | "1400.0" -> "1400" | "1.400" -> "1400" | "$1.450.000" -> "1450000"
+ *   "1,400.50" -> "1401" | "1400,5" -> "1401"
+ */
+export function montoADigitos(val: unknown): string {
+  if (typeof val === 'number') {
+    return Number.isFinite(val) ? String(Math.round(Math.abs(val))) : ''
+  }
+  let str = String(val ?? '').replace(/[^\d.,]/g, '')
+  if (!/\d/.test(str)) return ''
+
+  const ultimoPunto = str.lastIndexOf('.')
+  const ultimaComa = str.lastIndexOf(',')
+
+  if (ultimoPunto !== -1 && ultimaComa !== -1) {
+    // Ambos separadores: el último es el decimal, el otro es de miles
+    const decimal = ultimoPunto > ultimaComa ? '.' : ','
+    const miles = decimal === '.' ? ',' : '.'
+    str = str.split(miles).join('').replace(decimal, '.')
+  } else if (ultimoPunto !== -1 || ultimaComa !== -1) {
+    const sep = ultimoPunto !== -1 ? '.' : ','
+    const partes = str.split(sep)
+    const esMiles =
+      partes.length > 2 || (partes.length === 2 && (partes[1] ?? '').length === 3)
+    // Separador de miles ("1.400", "1.450.000") o decimal ("1400.0", "14,5")
+    str = esMiles ? partes.join('') : partes.join('.')
+  }
+
+  const n = Number(str)
+  return Number.isFinite(n) ? String(Math.round(n)) : soloDigitos(str)
+}
+
 /** Convierte "DD-MM-YYYY" (o con / o .) a "YYYY-MM-DD", el formato de `<input type="date">`. */
 export function fechaAInput(val: unknown): string {
   const str = String(val ?? '').trim()
